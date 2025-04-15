@@ -17,7 +17,7 @@ using std::ofstream;
 using std::map;
 using std::multimap;
 using std::pair;
- void print(multimap<string, int>& words);
+
 int main()
 {
 	FileManagement fileManage;
