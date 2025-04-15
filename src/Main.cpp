@@ -1,8 +1,8 @@
 
-#include "FileManagement.h"
+#include "FileManagement/FileManagement.h"
 #include <iostream>
 #include<string>
-#include "Map.h";
+#include "Map/Map.h";
 #include<map>
 #include <Windows.h>
 #include<vector>
@@ -49,24 +49,7 @@ int main()
 		//adds to the map that holds <filename,lineoftext> and then creates the map for <word,1>
 		mapFile->mapText(fileManage.getShortFileName(),lineOfText);
 	}
-	
-	//just a print method for me to test the parsing.
-	print(*mapFile->getMap());
 }
-
- void print(multimap<string, int> &words) {
-
-ofstream parsedOutput;
-if (!parsedOutput.is_open()) {
-	parsedOutput.open("C:\\Users\\Nate\\Documents\\shakespeare\\shakespeare\\Test.txt");
-}
-	for (const auto& pair : words) {
-		parsedOutput << pair.first << ":" << pair.second << std::endl;
-	}
-	Sleep(50);
-}
-
-
 
 
 
