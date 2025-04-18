@@ -1,32 +1,51 @@
+/*
+CSE 687 Project
+Contains the definition of the FileManagement class
+*/
+
+
 #pragma once
-#include<string>
+#include <string>
+#include <iostream>
 #include <fstream>
+#include <vector>
+#include <filesystem>
+#include <optional>
+
 using std::string;
+using std::vector;
 using std::ifstream;
+using std::optional;
+
 class FileManagement
 {
+private:
+	string inputDirectory;
+	string outputDirectory;
+	string tempDirectory;
+	vector<string> inputFiles;
+	string currentFile;
+	size_t currentFileIndex;
+	ifstream currentFileStream;
 
-	string inputFileDirectory;
-	string shortFileName;
-	string outputFileDirectory;
-	string tempFileDirectory;
-	
-	 ifstream* file = new ifstream();
+	void loadInputFiles();
+
 public:
+	FileManagement(string inputDir, string outputDir, string tempDir);
+	~FileManagement();
 
-	FileManagement();
+	//Getters
+	string getCurrentInputFile();
+	vector<string> getInputFiles();
 
-	void setInputFileDirectory(string value);
-	void setOutputFileDirectory(string value);
-	void setTempFileDirectory(string value);
-	void setShortFileName(string value);
+	//Setters
+	void setCurrentInputFile(string file);
 
-	string getInputFileDirectory();
-	string getOutputFileDirectory();
-	string getTempFileDirectory();
-	string getShortFileName();
-
-	string readOneLineOfText(string filePath);
-	string parseShortFileName(string filePath);
+	//Actions
+	bool openFile(size_t i);
+	void closeFile();
+	optional<string> readNextLine();
+	void writeToTemp(string filename, string content);
+	void writeToOutput(string filename, string content);
 };
 
