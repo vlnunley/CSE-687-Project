@@ -1,73 +1,106 @@
+/*
+CSE 687 Project
+Contains the implementation of the FileManagement class
+*/
+
+
 #include "FileManagement.h"
-#include <fstream>
 #include <stdexcept>
-#include <iostream>
+#include <optional>
+
 using std::ifstream;
+using std::ofstream;
 using std::getline;
 using std::cout;
-using std::exception;
+using std::runtime_error;
+using std::string;
+using std::vector;
+using std::ios;
+using std::optional;
 
-   
+namespace fs = std::filesystem;
 
-
-FileManagement::FileManagement() {
-
+FileManagement::FileManagement(string inputDir, string outputDir, string tempDir)
+	: inputDirectory(inputDir), outputDirectory(outputDir), tempDirectory(tempDir), currentFileIndex(0)
+{
+	loadInputFiles();
+	setCurrentInputFile(inputFiles[currentFileIndex]);
+	openFile(currentFileIndex);
 }
 
-void FileManagement::setInputFileDirectory(string value) {
-	inputFileDirectory = value;
-};
-void FileManagement::setOutputFileDirectory(string value) {
-	outputFileDirectory = value;
-};
-void FileManagement::setTempFileDirectory(string value) {
-	inputFileDirectory = value;
-};
-void FileManagement::setShortFileName(string value) {
-    shortFileName = value;
-};
-
-string FileManagement::getInputFileDirectory() {
-    return inputFileDirectory;
-};
-string FileManagement::getOutputFileDirectory() {
-    return outputFileDirectory;
-};
-string FileManagement::getTempFileDirectory() {
-    return tempFileDirectory;
-};
-
-string FileManagement::getShortFileName() {
-    return shortFileName;
-};
-
-
-string FileManagement::readOneLineOfText(string filePath) {
-    
-    string oneLineOfText;
-  
-    try {
-        if (!file->is_open()) {
-            file->open(filePath);
-        }
-        
-        if (file->eof() == true) {
-            return "eof";
-        }
-        if (file->is_open()) {
-       
-            std::getline(*file, oneLineOfText);
-            return oneLineOfText;
-        }
-
-    }
-    catch (exception &e) {
-        cout << e.what();
-    }
+FileManagement::~FileManagement() {
+	closeFile();
 }
 
-string FileManagement::parseShortFileName(string filePath) {
-    int begin = filePath.find_last_of("\\");
-    string shortPath = filePath.substr(begin+1, filePath.length());
-    return shortPath;
+void FileManagement::loadInputFiles() {
+
+	for (const auto& entry : fs::directory_iterator(inputDirectory)) {
+		if (entry.is_regular_file()) {
+			inputFiles.push_back(entry.path().string());
+		}
+	}
+
+	if (inputFiles.empty()) {
+		throw runtime_error("No files found in the input directory.");
+	}
+}
+
+//Getters
+vector<string> FileManagement::getInputFiles() {
+	return inputFiles;
+}
+
+string FileManagement::getCurrentInputFile() {
+	return currentFile;
+}
+
+//Setters
+void FileManagement::setCurrentInputFile(string file) {
+	currentFile = file;
+}
+
+//Actions
+bool FileManagement::openFile(size_t i) {
+	if (i >= inputFiles.size()) {
+		return false;
+	}
+
+	closeFile(); // Close previous if open
+
+	currentFile = inputFiles[i];
+	currentFileStream.open(currentFile);
+
+	return currentFileStream.is_open();
+}
+
+void FileManagement::closeFile() {
+	if (currentFileStream.is_open()) {
+		currentFileStream.close();
+	}
+}
+
+optional<string> FileManagement::readNextLine() {
+	string line;
+	if (getline(currentFileStream, line)) {
+		return line;
+	}
+	return std::nullopt;  // Signals EOF
+}
+
+void FileManagement::writeToOutput(string filename, string content) {
+	ofstream outFile(outputDirectory + "/" + filename, ios::app);
+	if (!outFile.is_open()) {
+		throw std::runtime_error("Failed to open the output file for writing.");
+	}
+	outFile << content;
+	outFile.close();
+}
+
+void FileManagement::writeToTemp(string filename, string content) {
+	ofstream tempFile(tempDirectory + "/" + filename, ios::app);
+	if (!tempFile.is_open()) {
+		throw std::runtime_error("Failed to open the temporary file for writing.");
+	}
+	tempFile << content;
+	tempFile.close();
 }
