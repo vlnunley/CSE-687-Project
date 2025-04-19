@@ -1,8 +1,9 @@
 #include "Reduce.h"
 #include<string>
+#include "../FileManagement/FileManagement.h"
 
-Reduce::Reduce() {
-
+Reduce::Reduce(FileManagement& fileManager)
+: fileManagement(fileManager) {
 }
 
 void Reduce::reduce(const std::string& key, const std::vector<int>& values) {
@@ -11,6 +12,6 @@ void Reduce::reduce(const std::string& key, const std::vector<int>& values) {
 }
 
 void Reduce::export(const std::string& key, const int value) {
-	// TODO - write result out to the output directory
-	// TODO - write SUCCESS to the output directory
+	fileManagement.writeToOutput(key, std::to_string(value));
+	fileManagement.writeToOutput("SUCCESS", "");
 }
