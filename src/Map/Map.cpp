@@ -1,10 +1,9 @@
 #include "Map.h"
-#include<string>
 #include <sstream>
-#include <vector>
 #include<iostream>
 #include <algorithm>
 #include<regex>
+
 using std::string;
 using std::vector;
 using std::cout;
@@ -14,16 +13,16 @@ using std::pair;
 using std::regex;
 using std::regex_search;
 using std::smatch;
-Map::Map() {
+using std::queue;
+using std::map;
+Map::Map(FileManagement& fileManager) : fileManagement(fileManager) {
 
 }
-multimap<string, int>*Map::getMap() {
-	return words;
-}
 
-multimap<string, string>* Map::getLinesOfText() {
-	return linesOfText;
-}
+
+queue<pair<string, int>> Map::getTempFileQueue() {
+	return tempFileQueue;
+};
 
 void Map::mapText(string key, string value) {
 	
@@ -31,14 +30,53 @@ void Map::mapText(string key, string value) {
 	string sub = "";
 	regex wordRegex("\\b[\\w'-]+\\b");
 	smatch matches;
-	linesOfText->insert(pair<string,string>(key, lineOfText));
-
+	linesOfText.insert(pair<string,string>(key, lineOfText));
+	int count = 0;
+	
+	
 	while (regex_search(lineOfText, matches, wordRegex)) {	
 		sub = matches[0].str(); 
 		transform(sub.begin(), sub.end(), sub.begin(),::tolower);
-		words->insert(pair<string, int>(sub, 1));
+		pair <string,int> currentPair = pair<string, int>(sub, 1);
+		words.insert(currentPair);
 		lineOfText = matches.suffix().str();  
-		}	
+		Export(currentPair);
+	}
+	
 }
 
+void Map::Export(pair<string,int> cpair) {
+	tempFileQueue.push(cpair);
+
+	if (tempFileQueue.size() == 100) {
+		while (!tempFileQueue.empty()) {
+			pair<string, int> outputline = tempFileQueue.front();
+			string tempString = "(" + outputline.first + "," + std::to_string(outputline.second) + ")\n";
+			fileManagement.writeToTemp(tempString);
+			tempFileQueue.pop();
+		}
+	}
+}
+void Map::Export() {
+	while (!tempFileQueue.empty()) {
+		pair<string, int> outputline = tempFileQueue.front();
+		string tempString = "(" + outputline.first + "," + std::to_string(outputline.second) + ")\n";
+		fileManagement.writeToTemp(tempString);
+		tempFileQueue.pop();
+	}
+}
+
+void Map::sortWords(map<string, vector<int>>& map,string line) {
+	int endOfNumber = line.find_first_of(',');
+	string parsed = line.substr(1, endOfNumber - 1);
+	auto it = map.find(parsed);
+
+	if (it != map.end()) {
+		it->second.push_back(1);
+	}
+	else {
+		vector<int > count{ 1 };
+		map.insert(make_pair(parsed, count));
+	}
+};
 

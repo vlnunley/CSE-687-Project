@@ -25,7 +25,7 @@ FileManagement::FileManagement(string inputDir, string outputDir, string tempDir
 {
 	loadInputFiles();
 	setCurrentInputFile(inputFiles[currentFileIndex]);
-	openFile(currentFileIndex);
+	openFile(currentFileIndex, true);
 }
 
 FileManagement::~FileManagement() {
@@ -60,16 +60,22 @@ void FileManagement::setCurrentInputFile(string file) {
 }
 
 //Actions
-bool FileManagement::openFile(size_t i) {
-	if (i >= inputFiles.size()) {
-		return false;
+bool FileManagement::openFile(size_t i, bool isInput) {
+	if (isInput) {
+		if (i >= inputFiles.size()) {
+			return false;
+		}
+
+		closeFile(); // Close previous if open
+
+		currentFile = inputFiles[i];
+		
 	}
-
-	closeFile(); // Close previous if open
-
-	currentFile = inputFiles[i];
+	else {
+		currentFile = tempDirectory + "/tempFile.txt";
+	}
+	
 	currentFileStream.open(currentFile);
-
 	return currentFileStream.is_open();
 }
 
@@ -96,8 +102,8 @@ void FileManagement::writeToOutput(string filename, string content) {
 	outFile.close();
 }
 
-void FileManagement::writeToTemp(string filename, string content) {
-	ofstream tempFile(tempDirectory + "/" + filename, ios::app);
+void FileManagement::writeToTemp(string content) {
+	ofstream tempFile(tempDirectory + "/tempFile.txt", ios::app);
 	if (!tempFile.is_open()) {
 		throw std::runtime_error("Failed to open the temporary file for writing.");
 	}

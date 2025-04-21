@@ -1,17 +1,21 @@
 #include "Reduce.h"
-#include<string>
-#include "../FileManagement/FileManagement.h"
+#include <numeric>
+
+using std::to_string;
+using std::string;
+using std::vector;
+using std::accumulate;
 
 Reduce::Reduce(FileManagement& fileManager)
-: fileManagement(fileManager) {
+	: fileManagement(fileManager) {
 }
 
-void Reduce::reduce(const std::string& key, const std::vector<int>& values) {
-	int sum = std::accumulate(values.begin(), values.end(), 0);
-	export(key, sum);
+void Reduce::ReduceDown(const string& key, const vector<int>& values) {
+	int sum = accumulate(values.begin(), values.end(), 0);
+	Export(key, sum);
 }
 
-void Reduce::export(const std::string& key, const int value) {
-	fileManagement.writeToOutput(key, std::to_string(value));
-	fileManagement.writeToOutput("SUCCESS", "");
+void Reduce::Export(const string& key, const int value) {
+	string keysum = "(" + key + "," + to_string(value) + ")\n";
+	fileManagement.writeToOutput("Output.txt", keysum);
 }
