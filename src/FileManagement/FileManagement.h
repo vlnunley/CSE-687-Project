@@ -42,10 +42,10 @@ public:
 	void setCurrentInputFile(string file);
 
 	//Actions
-	bool openFile(size_t i);
+	bool openFile(size_t i, bool isInput);
 	void closeFile();
 	optional<string> readNextLine();
-	void writeToTemp(string filename, string content);
+	void writeToTemp(string content);
 	void writeToOutput(string filename, string content);
 };
 
