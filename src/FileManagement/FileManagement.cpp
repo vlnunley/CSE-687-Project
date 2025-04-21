@@ -26,6 +26,7 @@ FileManagement::FileManagement(string inputDir, string outputDir, string tempDir
 	loadInputFiles();
 	setCurrentInputFile(inputFiles[currentFileIndex]);
 	openFile(currentFileIndex, true);
+	removeOldFiles();
 }
 
 FileManagement::~FileManagement() {
@@ -109,4 +110,15 @@ void FileManagement::writeToTemp(string content) {
 	}
 	tempFile << content;
 	tempFile.close();
+}
+
+void FileManagement::removeOldFiles() {
+	cout << "\nRemoving old temporary and output files\n";
+
+	for (const auto& entry : fs::directory_iterator(outputDirectory)) {
+		fs::remove(entry.path().string());
+	}
+	for (const auto& entry : fs::directory_iterator(tempDirectory)) {
+		fs::remove(entry.path().string());
+	}
 }
