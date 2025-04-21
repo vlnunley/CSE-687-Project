@@ -7,6 +7,7 @@
 #include "Map/Map.h"
 #include<algorithm>
 #include "Reduce/Reduce.h"
+#include "ErrorHandling/CINchecks.h"
 
 using std::cout;
 using std::endl;
@@ -20,6 +21,9 @@ using std::vector;
 using std::map;
 using std::find;
 using std::exception;
+using CINchecks::inputDirectoryCheck;
+using CINchecks::outputDirectoryCheck;
+using CINchecks::tempDirectoryCheck;
 
 int main()
 {
@@ -30,14 +34,17 @@ int main()
 	//grab input directory
 	cout << "Enter directory containing input files: ";
 	getline(cin, inputDir);
+	inputDirectoryCheck(inputDir);
 	
 	//grab the output directory
-	cout << "Enter directory for output files: ";
+	cout << "\nEnter directory for output files: ";
 	getline(cin, outputDir);
+	outputDirectoryCheck(outputDir);
 
 	//grab the temporary directory
-	cout << "Enter directory for temporary files: ";
+	cout << "\nEnter directory for temporary files: ";
 	getline(cin, tempDir);
+	tempDirectoryCheck(tempDir);
 
 	try {
 		FileManagement fileManager{inputDir, outputDir, tempDir};
@@ -47,14 +54,13 @@ int main()
 		Map mapInst(fileManager);
 
 		for (size_t i = 0; i < files.size(); ++i) {
-			cout << "\n";
-			cout << "Opening file: " << files[i] << endl;
+			cout << "\nOpening file: " << files[i] << endl;
 
 			if (!fileManager.openFile(i, true)) {
 				cerr << "Failed to open file: " << files[i] << endl;
 				continue;
 			}
-
+			cout << "\tMapping content...\n";
 			Map map(fileManager);
 			optional<string> lineOpt = fileManager.readNextLine();
 			while (lineOpt.has_value()) {
@@ -64,33 +70,35 @@ int main()
 			}
 			if (!map.getTempFileQueue().empty()) {
 				map.Export();
-			}			
+			}
+			cout << "\tFinished - Closing file...\n";
 			fileManager.closeFile(); // optional, destructor will handle it
 		}
 
+		cout << "\nOpening temp file\n";
 		map <string,vector<int>> tempFileLoaded;
-		cout << "Opening temp file";
 		size_t i = 0;
 		if (!fileManager.openFile(i, false)) {
-			cerr << "Failed to open temp";
+			cerr << "Failed to open temp file";
 		}
 		else {
+			cout << "\tSorting content...\n";
 			optional<string> lineOpt = fileManager.readNextLine();
 			while (lineOpt.has_value()) {
 				string line = lineOpt.value();
 				lineOpt = fileManager.readNextLine();
-				cout << line + "\n";
 				mapInst.sortWords(tempFileLoaded, line);
 			}
+			cout << "\tReducing content...\n";
+			Reduce reducer(fileManager);
+			for (auto p : tempFileLoaded)
+			{
+				reducer.ReduceDown(p.first, p.second);
+			}
+			cout << "\nWriting results to file\n";
+			fileManager.writeToOutput("SUCCESS", "");
+			cout << "DONE\n";
 		}
-		
-		Reduce reducer(fileManager);
-		for (auto p : tempFileLoaded)
-		{
-			reducer.ReduceDown(p.first, p.second);
-		}
-		fileManager.writeToOutput("SUCCESS", "");
-		
 	}
 	catch (const exception& e) {
 		cerr << "Exception: " << e.what() << endl;

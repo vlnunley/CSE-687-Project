@@ -47,5 +47,6 @@ public:
 	optional<string> readNextLine();
 	void writeToTemp(string content);
 	void writeToOutput(string filename, string content);
+	void removeOldFiles();
 };
 
