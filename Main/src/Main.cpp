@@ -30,6 +30,12 @@ int main()
 	string inputDir;
 	string outputDir;
 	string tempDir;
+	string dllDir;
+
+	//grab dll directory
+	cout << "Enter directory containing DLLs: ";
+	getline(cin, dllDir);
+	inputDirectoryCheck(dllDir);
 
 	//grab input directory
 	cout << "Enter directory containing input files: ";
@@ -37,12 +43,12 @@ int main()
 	inputDirectoryCheck(inputDir);
 	
 	//grab the output directory
-	cout << "\nEnter directory for output files: ";
+	cout << "\nEnter directory for output files (Default: ~/mapreduce/output): ";
 	getline(cin, outputDir);
 	outputDirectoryCheck(outputDir);
 
 	//grab the temporary directory
-	cout << "\nEnter directory for temporary files: ";
+	cout << "\nEnter directory for temporary files (Default: ~/mapreduce/temp): ";
 	getline(cin, tempDir);
 	tempDirectoryCheck(tempDir);
 
