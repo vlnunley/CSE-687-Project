@@ -3,7 +3,6 @@ CSE 687 Project
 Contains the implementation of the FileManagement class
 */
 
-
 #include "FileManagement.h"
 #include <stdexcept>
 #include <optional>

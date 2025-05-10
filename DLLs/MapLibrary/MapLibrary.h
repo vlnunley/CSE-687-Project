@@ -1,7 +1,7 @@
-// MathLibrary.h - Contains declarations of math functions
 #pragma once
 
-#ifdef DLLTEST_EXPORTS
+
+#ifdef MAPLIBRARY_EXPORTS
 #define MAPLIBRARY_API __declspec(dllexport)
 #else
 #define MAPLIBRARY_API __declspec(dllimport)
@@ -31,9 +31,7 @@ using std::vector;
 // This function must be called before any other function.
 
 
-extern "C"  MAPLIBRARY_API void ExportRemaining();
-
-extern "C"  MAPLIBRARY_API void Map(FileManagement& fileManager);
+extern "C"  MAPLIBRARY_API void Export(FileManagement & _fileManager);
 
 // Produce the next value in the sequence.
 // Returns true on success and updates current value and index;
@@ -42,12 +40,3 @@ extern "C" MAPLIBRARY_API queue<pair<string, int>> getTempFileQueue();
 
 // Get the current value in the sequence.
 extern "C"  MAPLIBRARY_API void mapText(string key, string value);
-
-// Get the position of the current value in the sequence.
-//extern "C"  MAPLIBRARY_API void Export(pair<string, int> cpair);
-
-// Get the position of the current value in the sequence.
-extern "C"  MAPLIBRARY_API void sortWords(map<string, vector<int>>& map, string line);
-
-
-extern "C"  MAPLIBRARY_API int testingDLL();
