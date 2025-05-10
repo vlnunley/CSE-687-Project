@@ -13,6 +13,7 @@
 using std::cout;
 using std::endl;
 using std::string;
+using std::to_string;
 using std::cin;
 using std::getline;
 using std::cerr;
@@ -32,6 +33,7 @@ using CINchecks::tempDirectoryCheck;
 
 typedef void (*funcMap)(string, string);
 typedef void (*funcMapExport)(FileManagement&);
+typedef int (*funcReduce)(const string&, vector<int>&);
 
 int main()
 {
@@ -50,7 +52,7 @@ int main()
 	cout << "Enter directory containing input files: ";
 	getline(cin, inputDir);
 	inputDirectoryCheck(inputDir);
-	
+
 	//grab the output directory
 	cout << "\nEnter directory for output files (Default: ./mapreduce/output): ";
 	getline(cin, outputDir);
@@ -65,7 +67,7 @@ int main()
 		FileManagement fileManager{ inputDir, outputDir, tempDir };
 
 		//Load Map DLL
-		HINSTANCE hDLL;
+		HINSTANCE hDLL, hDLL2;
 		funcMap mapText;
 		funcMapExport mapExport;
 
@@ -79,7 +81,27 @@ int main()
 		mapText = (funcMap)GetProcAddress(hDLL, "mapText");
 		mapExport = (funcMapExport)GetProcAddress(hDLL, "Export");
 
+		if (mapText == NULL || mapExport == NULL) {
+			throw exception("Mapping function or Exporter failed to load. Stopping program...");
+		}
+
 		//Load Reduce DLL
+		funcReduce reduceDown;
+
+		const wchar_t* reduceLib = L"ReduceLibrary";
+		hDLL2 = LoadLibraryEx(reduceLib, NULL, NULL);
+
+		if (hDLL2 == NULL) {
+			throw exception("Failed to load Reduce Library. Stopping program...");
+		}
+
+		reduceDown = (funcReduce)GetProcAddress(hDLL2, "ReduceDown");
+
+
+		if (reduceDown == NULL) {
+			throw exception("Reduce function failed to load. Stopping program...");
+		}
+
 
 		//Map
 		const auto& files = fileManager.getInputFiles();
@@ -115,6 +137,33 @@ int main()
 		FreeLibrary(hDLL);
 
 		//Reduce
+		map<string, vector<int>> tempFileLoaded;
+		size_t i = 0;
+		int wordSum = 0;
+		string keysum;
+
+		if (!fileManager.openFile(i, false)) {
+			cerr << "Failed to open temp file";
+		}
+		else {
+			cout << "\tSorting content...\n";
+			optional<string> lineOpt = fileManager.readNextLine();
+			while (lineOpt.has_value()) {
+				string line = lineOpt.value();
+				lineOpt = fileManager.readNextLine();
+				utils.sortWords(tempFileLoaded, line);
+			}
+			cout << "\tReducing content...\n";
+			for (auto p : tempFileLoaded)
+			{
+				wordSum = reduceDown(p.first, p.second);
+				keysum = "(" + p.first + "," + to_string(wordSum) + ")\n";
+				fileManager.writeToOutput("Output.txt", keysum);
+			}
+			cout << "\nWriting results to file\n";
+			fileManager.writeToOutput("SUCCESS", "");
+			cout << "DONE\n";
+		}
 
 	}
 	catch (const exception& e) {
