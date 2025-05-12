@@ -9,32 +9,12 @@ using std::getline;
 namespace fs = std::filesystem;
 
 //checks to see if the input type is correct, if not clears cin and reasks for input
-void CINchecks::dllDirectoryCheck(string& dir) {
-	while (cin.fail() || !fs::is_directory(dir) || fs::is_empty(dir))
-	{
-		if (dir.empty())
-		{
-			cout << "\tUsing deafult DLL directory.\n";
-			dir = ".\\mapreduce\\dlls";
-			break;
-		}
-		if(!fs::is_directory(dir)) cout << "\nDirectory not found. Please try again";
-
-		if (fs::is_empty(dir)) cout << "\nDirectory is empty. Please try again.";
-
-		cin.clear();
-		cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-		cout << "\tEnter directory containing DLLs: ";
-		getline(cin, dir);
-	}
-}
-
 void CINchecks::inputDirectoryCheck(string& dir) {
-	while (cin.fail() || !fs::is_directory(dir) || fs::is_empty(dir))
+	while (cin.fail() || !fs::is_directory(dir) || fs::is_empty(dir) || dir.empty())
 	{
-		if (!fs::is_directory(dir)) cout << "\nDirectory not found. Please try again";
+		if (!fs::is_directory(dir) || dir.empty()) cout << "\nDirectory not found. Please try again";
 
-		if (fs::is_empty(dir)) cout << "\nDirectory is empty. Please try again.";
+		else if (fs::is_empty(dir)) cout << "\nDirectory is empty. Please try again.";
 
 		cin.clear();
 		cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -55,7 +35,7 @@ void CINchecks::outputDirectoryCheck(string& dir) {
 
 		if (!fs::is_directory(dir)) cout << "\nDirectory not found. Please try again";
 
-		if (fs::is_empty(dir)) cout << "\nDirectory is empty. Please try again.";
+		else if (fs::is_empty(dir)) cout << "\nDirectory is empty. Please try again.";
 
 		cin.clear();
 		cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -74,9 +54,9 @@ void CINchecks::tempDirectoryCheck(string& dir) {
 			break;
 		}
 
-		if (!fs::is_directory(dir)) cout << "\nDirectory not found. Please try again";
+		else if (!fs::is_directory(dir)) cout << "\nDirectory not found. Please try again";
 
-		if (fs::is_empty(dir)) cout << "\nDirectory is empty. Please try again.";
+		else if (fs::is_empty(dir)) cout << "\nDirectory is empty. Please try again.";
 
 		cin.clear();
 		cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
