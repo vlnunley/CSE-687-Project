@@ -26,7 +26,6 @@ using std::exception;
 using std::queue;
 using std::pair;
 using std::map;
-using CINchecks::dllDirectoryCheck;
 using CINchecks::inputDirectoryCheck;
 using CINchecks::outputDirectoryCheck;
 using CINchecks::tempDirectoryCheck;
