@@ -16,18 +16,19 @@ using std::map;
 using std::multimap;
 
 FileManagement* fileManager;
-queue<pair<string, int>> tempFileQueue;
-multimap<string, int> words;
-multimap<string, string>linesOfText;
+static thread_local queue<pair<string, int>> tempFileQueue;
+//multimap<string, int> words;
+//multimap<string, string>linesOfText;
 
  void PrepairExport(pair<string, int> cpair);
 
-queue<pair<string, int>>  getTempFileQueue() {
+ queue<pair<string, int>>  getTempFileQueue() {
 	return tempFileQueue;
 };
 
  void mapText(string key, string value) {
-
+	multimap<string, int> words;
+	multimap<string, string>linesOfText;
 	string lineOfText = value;
 	string sub = "";
 	regex wordRegex("\\b[\\w'-]+\\b");
@@ -42,20 +43,30 @@ queue<pair<string, int>>  getTempFileQueue() {
 		pair <string, int> currentPair = pair<string, int>(sub, 1);
 		words.insert(currentPair);
 		lineOfText = matches.suffix().str();
+
 		PrepairExport(currentPair);
 	}
-
 }
 
 void PrepairExport(pair<string, int> cpair) {
 	tempFileQueue.push(cpair);
 }
-
-void Export(FileManagement& _fileManager) {
-	while (!tempFileQueue.empty()) {
+queue<pair<string, int>> Export(FileManagement& _fileManager) {
+	/*while (!tempFileQueue.empty()) {
 		pair<string, int> outputline = tempFileQueue.front();
 		string tempString = "(" + outputline.first + "," + std::to_string(outputline.second) + ")";
 		_fileManager.writeToTemp(tempString);
 		tempFileQueue.pop();
+	}*/
+	queue<pair<string, int>> tempq;
+	
+	while (!tempFileQueue.empty()) {
+		//tempPair = tempFileQueue.front();
+		tempq.push(tempFileQueue.front());
+		tempFileQueue.pop();
 	}
+	
+	return tempq;
+	
+	
 }
