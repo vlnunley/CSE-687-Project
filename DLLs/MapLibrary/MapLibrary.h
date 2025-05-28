@@ -31,7 +31,7 @@ using std::vector;
 // This function must be called before any other function.
 
 
-extern "C"  MAPLIBRARY_API void Export(FileManagement & _fileManager);
+extern "C"  MAPLIBRARY_API queue<pair<string, int>> Export(FileManagement & _fileManager);
 
 // Produce the next value in the sequence.
 // Returns true on success and updates current value and index;

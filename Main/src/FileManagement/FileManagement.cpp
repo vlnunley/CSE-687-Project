@@ -6,7 +6,8 @@ Contains the implementation of the FileManagement class
 #include "FileManagement.h"
 #include <stdexcept>
 #include <optional>
-
+#include <mutex>
+#include <windows.h>
 using std::ifstream;
 using std::ofstream;
 using std::getline;
@@ -16,6 +17,8 @@ using std::string;
 using std::vector;
 using std::ios;
 using std::optional;
+using std::endl;
+using std::mutex;
 
 namespace fs = std::filesystem;
 
@@ -98,16 +101,80 @@ void FileManagement::writeToOutput(string filename, string content) {
 	if (!outFile.is_open()) {
 		throw std::runtime_error("Failed to open the output file for writing.");
 	}
-	outFile << content;
+	outFile << content << endl;
 	outFile.close();
 }
 
 void FileManagement::writeToTemp(string content) {
-	ofstream tempFile(tempDirectory + "/tempFile.txt", ios::app);
+	
+		ofstream tempFile(tempDirectory + "/tempFile.txt", ios::app);
+		if (!tempFile.is_open()) {
+			throw std::runtime_error("Failed to open the temporary file for writing.");
+		}
+		tempFile << content << endl;
+		tempFile.close();
+}
+void FileManagement::writeToTemp1(string content) {
+
+	ofstream tempFile(tempDirectory + "/tempFile1.txt", ios::app);
 	if (!tempFile.is_open()) {
 		throw std::runtime_error("Failed to open the temporary file for writing.");
 	}
-	tempFile << content;
+	tempFile << content << endl;
+	tempFile.close();
+}
+void FileManagement::writeToTemp2(string content) {
+
+	ofstream tempFile(tempDirectory + "/tempFile2.txt", ios::app);
+	if (!tempFile.is_open()) {
+		throw std::runtime_error("Failed to open the temporary file for writing.");
+	}
+	tempFile << content << endl;
+	tempFile.close();
+}
+void FileManagement::writeToTemp3(string content) {
+
+	ofstream tempFile(tempDirectory + "/tempFile3.txt", ios::app);
+	if (!tempFile.is_open()) {
+		throw std::runtime_error("Failed to open the temporary file for writing.");
+	}
+	tempFile << content << endl;
+	tempFile.close();
+}
+void FileManagement::writeToTemp4(string content) {
+
+	ofstream tempFile(tempDirectory + "/tempFile4.txt", ios::app);
+	if (!tempFile.is_open()) {
+		throw std::runtime_error("Failed to open the temporary file for writing.");
+	}
+	tempFile << content << endl;
+	tempFile.close();
+}
+void FileManagement::writeToTemp5(string content) {
+
+	ofstream tempFile(tempDirectory + "/tempFile5.txt", ios::app);
+	if (!tempFile.is_open()) {
+		throw std::runtime_error("Failed to open the temporary file for writing.");
+	}
+	tempFile << content << endl;
+	tempFile.close();
+}
+void FileManagement::writeToTemp6(string content) {
+
+	ofstream tempFile(tempDirectory + "/tempFile6.txt", ios::app);
+	if (!tempFile.is_open()) {
+		throw std::runtime_error("Failed to open the temporary file for writing.");
+	}
+	tempFile << content << endl;
+	tempFile.close();
+}
+void FileManagement::writeToTemp7(string content) {
+
+	ofstream tempFile(tempDirectory + "/tempFile7.txt", ios::app);
+	if (!tempFile.is_open()) {
+		throw std::runtime_error("Failed to open the temporary file for writing.");
+	}
+	tempFile << content << endl;
 	tempFile.close();
 }
 
@@ -120,4 +187,158 @@ void FileManagement::removeOldFiles() {
 	for (const auto& entry : fs::directory_iterator(tempDirectory)) {
 		fs::remove(entry.path().string());
 	}
+
+	}
+void FileManagement::WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueue, FileManagement& fileManager, int& writingFilesIndex, vector<mutex>& mtxVect) {
+	switch (writingFilesIndex) {
+	case 0: {
+		while (1) {
+			if (mtxVect[0].try_lock()) {
+				while (!tempQueue.empty()) {
+				string tempString = "(" + tempQueue.front().first + "," + std::to_string(tempQueue.front().second) + ")";
+				fileManager.writeToTemp(tempString);
+				tempQueue.pop();
+				}				
+				mtxVect[0].unlock();
+				writingFilesIndex = 1;			
+				break;
+			}
+			else {
+				std::this_thread::yield();
+			}
+
+
+
+		}
+		break;
+	}
+	case 1: {
+		while (1) {
+			if (mtxVect[1].try_lock()) {
+				while (!tempQueue.empty()) {
+					string tempString = "(" + tempQueue.front().first + "," + std::to_string(tempQueue.front().second) + ")";
+					fileManager.writeToTemp1(tempString);
+					tempQueue.pop();
+				}
+				mtxVect[1].unlock();
+				writingFilesIndex = 2;
+				break;
+			}
+			else {
+				std::this_thread::yield();
+			}
+		}
+		break;
+	}
+	case 2: {
+		while (1) {
+			if (mtxVect[2].try_lock()) {
+				while (!tempQueue.empty()) {
+					string tempString = "(" + tempQueue.front().first + "," + std::to_string(tempQueue.front().second) + ")";
+					fileManager.writeToTemp2(tempString);
+					tempQueue.pop();
+				}
+				mtxVect[2].unlock();
+				writingFilesIndex = 3;
+				break;
+			}
+			else {
+				std::this_thread::yield();
+			}
+		}
+		break;
+	}
+	case 3: {
+		while (1) {
+			if (mtxVect[3].try_lock()) {
+				while (!tempQueue.empty()) {
+					string tempString = "(" + tempQueue.front().first + "," + std::to_string(tempQueue.front().second) + ")";
+					fileManager.writeToTemp3(tempString);
+					tempQueue.pop();
+				}
+				mtxVect[3].unlock();
+				writingFilesIndex = 4;
+				break;
+			}
+			else {
+				std::this_thread::yield();
+			}
+		}
+		break;
+	}
+	case 4: {
+		while (1) {
+			if (mtxVect[4].try_lock()) {
+				while (!tempQueue.empty()) {
+					string tempString = "(" + tempQueue.front().first + "," + std::to_string(tempQueue.front().second) + ")";
+					fileManager.writeToTemp4(tempString);
+					tempQueue.pop();
+				}
+				mtxVect[4].unlock();
+				writingFilesIndex = 5;
+				break;
+			}
+			else {
+				std::this_thread::yield();
+			}
+		}
+		break;
+	}
+	case 5: {
+		while (1) {
+			if (mtxVect[5].try_lock()) {
+				while (!tempQueue.empty()) {
+					string tempString = "(" + tempQueue.front().first + "," + std::to_string(tempQueue.front().second) + ")";
+					fileManager.writeToTemp5(tempString);
+					tempQueue.pop();
+				}
+				mtxVect[5].unlock();
+				writingFilesIndex = 6;
+				break;
+			}
+			else {
+				std::this_thread::yield();
+			}
+		}
+		break;
+	}
+	case 6: {
+		while (1) {
+			if (mtxVect[6].try_lock()) {
+				while (!tempQueue.empty()) {
+					string tempString = "(" + tempQueue.front().first + "," + std::to_string(tempQueue.front().second) + ")";
+					fileManager.writeToTemp6(tempString);
+					tempQueue.pop();
+				}
+				mtxVect[6].unlock();
+				writingFilesIndex = 7;
+				break;
+			}
+			else {
+				std::this_thread::yield();
+			}
+		}
+		break;
+	}
+	case 7: {
+		while (1) {
+			if (mtxVect[7].try_lock()) {
+				while (!tempQueue.empty()) {
+					string tempString = "(" + tempQueue.front().first + "," + std::to_string(tempQueue.front().second) + ")";
+					fileManager.writeToTemp7(tempString);
+					tempQueue.pop();
+				}
+				mtxVect[7].unlock();
+				writingFilesIndex = 0;
+				break;
+			}
+			else {
+				std::this_thread::yield();
+			}
+		}
+		break;
+	}
+	}
+
 }
+
