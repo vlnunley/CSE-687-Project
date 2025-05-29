@@ -64,20 +64,21 @@ void FileManagement::setCurrentInputFile(string file) {
 
 //Actions
 bool FileManagement::openFile(size_t i, bool isInput) {
+	closeFile();
 	if (isInput) {
 		if (i >= inputFiles.size()) {
 			return false;
 		}
-
-		closeFile(); // Close previous if open
-
 		currentFile = inputFiles[i];
-		
 	}
 	else {
-		currentFile = tempDirectory + "/tempFile.txt";
+		if (i == 0) {
+			currentFile = tempDirectory + "/tempFile.txt";
+		} else {
+			currentFile = tempDirectory + "/tempFile" + std::to_string(i) + ".txt";
+		}
 	}
-	
+
 	currentFileStream.open(currentFile);
 	return currentFileStream.is_open();
 }
@@ -106,7 +107,7 @@ void FileManagement::writeToOutput(string filename, string content) {
 }
 
 void FileManagement::writeToTemp(string content) {
-	
+
 		ofstream tempFile(tempDirectory + "/tempFile.txt", ios::app);
 		if (!tempFile.is_open()) {
 			throw std::runtime_error("Failed to open the temporary file for writing.");
@@ -198,9 +199,9 @@ void FileManagement::WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueu
 				string tempString = "(" + tempQueue.front().first + "," + std::to_string(tempQueue.front().second) + ")";
 				fileManager.writeToTemp(tempString);
 				tempQueue.pop();
-				}				
+				}
 				mtxVect[0].unlock();
-				writingFilesIndex = 1;			
+				writingFilesIndex = 1;
 				break;
 			}
 			else {
