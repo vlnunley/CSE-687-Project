@@ -127,7 +127,7 @@ int main()
 		vector<multimap<string, int>> reduce_result(R);
 		vector<thread> reduce_threads;
 		for (int i = 0; i < R; i++) {
-			reduce_threads.emplace_back(ReduceThread, std::ref(reduce_result[i]), std::ref(fileManager));
+			reduce_threads.emplace_back(ReduceThread, i, std::ref(reduce_result[i]), std::ref(fileManager));
 			cout << "Reduce thread " << reduce_threads[i].get_id() << " has started"<< endl;
 		}
 		for (auto& t : reduce_threads) {
@@ -157,7 +157,7 @@ int main()
 			string keysum;
 			keysum = "(" + p.first + "," + to_string(p.second) + ")\n";
 			fileManager.writeToOutput("Output.txt", keysum);
-		} 
+		}
 		fileManager.writeToOutput("SUCCESS", "");
 		cout << "DONE\n";
 	}
@@ -220,7 +220,7 @@ void Mapthread(multimap<string, string>& text, FileManagement& fileManager,vecto
 
 }
 
-void ReduceThread(multimap<string, int>& count, FileManagement& fileManager) {
+void ReduceThread(int index, multimap<string, int>& count, FileManagement& fileManager) {
 
 	HINSTANCE hDLL;
 	funcReduce reduceDown;
@@ -238,10 +238,9 @@ void ReduceThread(multimap<string, int>& count, FileManagement& fileManager) {
 	}
 
 	map<string, vector<int>> tempFileLoaded;
-	size_t i = 0;
 	int wordSum = 0;
 
-	if (!fileManager.openFile(i, false)) {
+	if (!fileManager.openFile(index, false)) {
 		throw exception("Failed to open temp file");
 	}
 
