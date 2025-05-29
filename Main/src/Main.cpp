@@ -133,6 +133,33 @@ int main()
 		for (auto& t : reduce_threads) {
 			t.join();
 		}
+
+		// Reduction of results
+		cout << "\nMerging results from all reduce threads...\n";
+		multimap<string, int> reduce_results;
+		for (int i = 0; i < R; i++) {
+			for (const auto& p : reduce_result[i]) {
+				int wordSum = 0;
+				auto it = reduce_results.find(p.first);
+				if (it != reduce_results.end()) {
+					wordSum = it->second + p.second;
+					reduce_results.erase(it);
+					reduce_results.insert(make_pair(p.first, wordSum));
+				} else {
+					wordSum = p.second;
+					reduce_results.insert(make_pair(p.first, wordSum));
+				}
+			}
+		}
+
+		cout << "\nWriting results to file\n";
+		for (auto& p : reduce_results) {
+			string keysum;
+			keysum = "(" + p.first + "," + to_string(p.second) + ")\n";
+			fileManager.writeToOutput("Output.txt", keysum);
+		} 
+		fileManager.writeToOutput("SUCCESS", "");
+		cout << "DONE\n";
 	}
 	catch (const exception& e) {
 		cerr << "Exception: " << e.what() << endl;
