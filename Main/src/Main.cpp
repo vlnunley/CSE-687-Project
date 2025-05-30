@@ -44,6 +44,7 @@ typedef void (*funcMap)(string, string);
 typedef queue<pair<string, int>>(*funcMapExport)(FileManagement&);
 typedef int (*funcReduce)(const string&, vector<int>&);
 
+const int R = 8; // Number of reduce threads
 
 int main()
 {
@@ -75,10 +76,6 @@ int main()
 
 	try {
 		FileManagement fileManager{ inputDir, outputDir, tempDir };
-
-		//Load Map DLL
-		HINSTANCE  hDLL2;
-
 
 		//Map
 		const auto& files = fileManager.getInputFiles();
@@ -126,36 +123,43 @@ int main()
 		}
 		//FreeLibrary(hDLL);
 
-		//Reduce
-		map<string, vector<int>> tempFileLoaded;
-		size_t i = 0;
-		int wordSum = 0;
-		string keysum;
-		
-
-		if (!fileManager.openFile(i, false)) {
-			cerr << "Failed to open temp file";
+		// Reduce
+		vector<multimap<string, int>> reduce_result(R);
+		vector<thread> reduce_threads;
+		for (int i = 0; i < R; i++) {
+			reduce_threads.emplace_back(ReduceThread, i, std::ref(reduce_result[i]), std::ref(fileManager));
+			cout << "Reduce thread " << reduce_threads[i].get_id() << " has started"<< endl;
 		}
-		else {
-			cout << "\tSorting content...\n";
-			optional<string> lineOpt = fileManager.readNextLine();
-			while (lineOpt.has_value()) {
-				string line = lineOpt.value();
-				lineOpt = fileManager.readNextLine();
-				utils.sortWords(tempFileLoaded, line);
-			}
-			cout << "\tReducing content...\n";
-			for (auto p : tempFileLoaded)
-			{
-				/*wordSum = reduceDown(p.first, p.second);*/
-				keysum = "(" + p.first + "," + to_string(wordSum) + ")\n";
-				fileManager.writeToOutput("Output.txt", keysum);
-			}
-			cout << "\nWriting results to file\n";
-			fileManager.writeToOutput("SUCCESS", "");
-			cout << "DONE\n";
+		for (auto& t : reduce_threads) {
+			t.join();
 		}
 
+		// Reduction of results
+		cout << "\nMerging results from all reduce threads...\n";
+		multimap<string, int> reduce_results;
+		for (int i = 0; i < R; i++) {
+			for (const auto& p : reduce_result[i]) {
+				int wordSum = 0;
+				auto it = reduce_results.find(p.first);
+				if (it != reduce_results.end()) {
+					wordSum = it->second + p.second;
+					reduce_results.erase(it);
+					reduce_results.insert(make_pair(p.first, wordSum));
+				} else {
+					wordSum = p.second;
+					reduce_results.insert(make_pair(p.first, wordSum));
+				}
+			}
+		}
+
+		cout << "\nWriting results to file\n";
+		for (auto& p : reduce_results) {
+			string keysum;
+			keysum = "(" + p.first + "," + to_string(p.second) + ")\n";
+			fileManager.writeToOutput("Output.txt", keysum);
+		}
+		fileManager.writeToOutput("SUCCESS", "");
+		cout << "DONE\n";
 	}
 	catch (const exception& e) {
 		cerr << "Exception: " << e.what() << endl;
@@ -213,10 +217,44 @@ void Mapthread(multimap<string, string>& text, FileManagement& fileManager,vecto
 	catch (std::exception Ex) {
 		
 	}
-	
 
 }
 
+void ReduceThread(int index, multimap<string, int>& count, FileManagement& fileManager) {
 
+	HINSTANCE hDLL;
+	funcReduce reduceDown;
 
+	const wchar_t* reduceLib = L"ReduceLibrary";
+	hDLL = LoadLibraryEx(reduceLib, NULL, NULL);
+	if (hDLL == NULL) {
+		throw exception("Failed to load Reduce Library. Stopping program...");
+	}
 
+	reduceDown = (funcReduce)GetProcAddress(hDLL, "ReduceDown");
+	if (reduceDown == NULL) {
+		FreeLibrary(hDLL);
+		throw exception("Reduce function failed to load. Stopping program...");
+	}
+
+	map<string, vector<int>> tempFileLoaded;
+	int wordSum = 0;
+
+	if (!fileManager.openFile(index, false)) {
+		throw exception("Failed to open temp file");
+	}
+
+	cout << "\tSorting content...\n";
+	optional<string> lineOpt = fileManager.readNextLine();
+	while (lineOpt.has_value()) {
+		string line = lineOpt.value();
+		lineOpt = fileManager.readNextLine();
+		utils.sortWords(tempFileLoaded, line);
+	}
+
+	cout << "\tReducing content...\n";
+	for (auto p : tempFileLoaded) {
+		wordSum = reduceDown(p.first, p.second);
+		count.push_back(make_pair(p.first, wordSum));
+	}
+}
