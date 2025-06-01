@@ -34,7 +34,10 @@ using CINchecks::inputDirectoryCheck;
 using CINchecks::outputDirectoryCheck;
 using CINchecks::tempDirectoryCheck;
 using std::mutex;
+
 void Mapthread(multimap<string,string>& text,FileManagement& fileManager, vector<mutex>& mtxVect);
+void ReduceThread(int index, multimap<string, int>& count, FileManagement& fileManager);
+
 //static mutex mtx;
 //static mutex mtx1;
 //static mutex mtx2;
@@ -133,7 +136,7 @@ int main()
 		for (auto& t : reduce_threads) {
 			t.join();
 		}
-
+		
 		// Reduction of results
 		cout << "\nMerging results from all reduce threads...\n";
 		multimap<string, int> reduce_results;
@@ -151,8 +154,8 @@ int main()
 				}
 			}
 		}
-
-		cout << "\nWriting results to file\n";
+		
+		cout << "\nWriting results to file\ n";
 		for (auto& p : reduce_results) {
 			string keysum;
 			keysum = "(" + p.first + "," + to_string(p.second) + ")\n";
@@ -169,50 +172,51 @@ int main()
 
 void Mapthread(multimap<string, string>& text, FileManagement& fileManager,vector<mutex>& mtxVect) {
 	try{
-	HINSTANCE hDLL= LoadLibraryEx(L"MapLibrary", NULL, NULL);
-	if (!hDLL) {
-		throw runtime_error("Failed to load DLL");
-	}
-	funcMap mapText;
-	funcMapExport mapExport;
-	mapText = (funcMap)GetProcAddress(hDLL, "mapText");
-	mapExport = (funcMapExport)GetProcAddress(hDLL, "Export");
-	if (!mapText || !mapExport) {
-		FreeLibrary(hDLL);
-		throw runtime_error("Failed to get function addresses");
-	}
-	int cnt = 0;
-	srand(time(0) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
-	int writingFilesIndex = rand() % 8;
-	//int writingFilesIndex = 0;
-	for (const auto& line : text)
-	{		
+		HINSTANCE hDLL= LoadLibraryEx(L"MapLibrary", NULL, NULL);
+		if (!hDLL) {
+			throw runtime_error("Failed to load DLL");
+		}
+		funcMap mapText;
+		funcMapExport mapExport;
+		mapText = (funcMap)GetProcAddress(hDLL, "mapText");
+		mapExport = (funcMapExport)GetProcAddress(hDLL, "Export");
+		if (!mapText || !mapExport) {
+			FreeLibrary(hDLL);
+			throw runtime_error("Failed to get function addresses");
+		}
+		int cnt = 0;
+		srand(time(0) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
+		int writingFilesIndex = rand() % 8;
+		//int writingFilesIndex = 0;
+		for (const auto& line : text)
+		{		
 			mapText(line.first, line.second);		
 			cnt++;
-			if (cnt >= 500) {				
-					queue<pair<string, int>> tempQueue = mapExport(fileManager);
-						fileManager.WriteToMultipleTempFiles(tempQueue, fileManager, writingFilesIndex,mtxVect);
-						cnt = 0;	
+			if (cnt >= 500) {
+				cout << "Outputing to temp file...";
+				queue<pair<string, int>> tempQueue = mapExport(fileManager);
+				fileManager.WriteToMultipleTempFiles(tempQueue, fileManager, writingFilesIndex,mtxVect);
+				cnt = 0;	
 			}
-	}
-	// finish writing the remaining words.
-	while (1) {
-		queue<pair<string, int>> tempQueue = mapExport(fileManager);
-		fileManager.WriteToMultipleTempFiles(tempQueue, fileManager, writingFilesIndex, mtxVect);
-		break;
-	}
-
-	while (1) {
-		if (mtx4.try_lock()) {
-			cout << "Thread: " << std::this_thread::get_id() << " has finished." << endl;
-			mtx4.unlock();
+		}
+		// finish writing the remaining words.
+		while (1) {
+			queue<pair<string, int>> tempQueue = mapExport(fileManager);
+			fileManager.WriteToMultipleTempFiles(tempQueue, fileManager, writingFilesIndex, mtxVect);
 			break;
 		}
-		else {
-			std::this_thread::yield();
+
+		while (1) {
+			if (mtx4.try_lock()) {
+				cout << "Thread: " << std::this_thread::get_id() << " has finished." << endl;
+				mtx4.unlock();
+				break;
+			}
+			else {
+				std::this_thread::yield();
+			}
 		}
-	}
-	FreeLibrary(hDLL);
+		FreeLibrary(hDLL);
 	}
 	catch (std::exception Ex) {
 		
@@ -224,6 +228,7 @@ void ReduceThread(int index, multimap<string, int>& count, FileManagement& fileM
 
 	HINSTANCE hDLL;
 	funcReduce reduceDown;
+	Utils utils;
 
 	const wchar_t* reduceLib = L"ReduceLibrary";
 	hDLL = LoadLibraryEx(reduceLib, NULL, NULL);
@@ -255,6 +260,6 @@ void ReduceThread(int index, multimap<string, int>& count, FileManagement& fileM
 	cout << "\tReducing content...\n";
 	for (auto p : tempFileLoaded) {
 		wordSum = reduceDown(p.first, p.second);
-		count.push_back(make_pair(p.first, wordSum));
+		count.insert(make_pair(p.first, wordSum));
 	}
 }
