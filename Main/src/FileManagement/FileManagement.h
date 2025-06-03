@@ -35,7 +35,7 @@ private:
 	void loadInputFiles();
 
 public:
-	FileManagement(string inputDir, string outputDir, string tempDir);
+	FileManagement(string inputDir, string outputDir, string tempDir, bool removeOld);
 	~FileManagement();
 
 	//Getters

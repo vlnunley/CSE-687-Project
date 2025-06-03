@@ -22,13 +22,17 @@ using std::mutex;
 
 namespace fs = std::filesystem;
 
-FileManagement::FileManagement(string inputDir, string outputDir, string tempDir)
+FileManagement::FileManagement(string inputDir, string outputDir, string tempDir, bool removeOld)
 	: inputDirectory(inputDir), outputDirectory(outputDir), tempDirectory(tempDir), currentFileIndex(0)
 {
 	loadInputFiles();
 	setCurrentInputFile(inputFiles[currentFileIndex]);
 	openFile(currentFileIndex, true);
-	removeOldFiles();
+
+	if (removeOld)
+	{
+		removeOldFiles();
+	}
 }
 
 FileManagement::~FileManagement() {

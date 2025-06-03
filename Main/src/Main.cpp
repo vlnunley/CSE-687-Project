@@ -36,7 +36,7 @@ using CINchecks::tempDirectoryCheck;
 using std::mutex;
 
 void Mapthread(multimap<string,string>& text,FileManagement& fileManager, vector<mutex>& mtxVect);
-void ReduceThread(int index, multimap<string, int>& count, FileManagement& fileManager);
+void ReduceThread(int index, multimap<string, int>& count, string input, string output, string temp);
 
 //static mutex mtx;
 //static mutex mtx1;
@@ -78,7 +78,7 @@ int main()
 	tempDirectoryCheck(tempDir);
 
 	try {
-		FileManagement fileManager{ inputDir, outputDir, tempDir };
+		FileManagement fileManager{ inputDir, outputDir, tempDir, true };
 
 		//Map
 		const auto& files = fileManager.getInputFiles();
@@ -130,7 +130,7 @@ int main()
 		vector<multimap<string, int>> reduce_result(R);
 		vector<thread> reduce_threads;
 		for (int i = 0; i < R; i++) {
-			reduce_threads.emplace_back(ReduceThread, i, std::ref(reduce_result[i]), std::ref(fileManager));
+			reduce_threads.emplace_back(ReduceThread, i, std::ref(reduce_result[i]), inputDir, outputDir, tempDir);
 			cout << "Reduce thread " << reduce_threads[i].get_id() << " has started"<< endl;
 		}
 		for (auto& t : reduce_threads) {
@@ -193,7 +193,6 @@ void Mapthread(multimap<string, string>& text, FileManagement& fileManager,vecto
 			mapText(line.first, line.second);		
 			cnt++;
 			if (cnt >= 500) {
-				cout << "Outputing to temp file...";
 				queue<pair<string, int>> tempQueue = mapExport(fileManager);
 				fileManager.WriteToMultipleTempFiles(tempQueue, fileManager, writingFilesIndex,mtxVect);
 				cnt = 0;	
@@ -224,42 +223,49 @@ void Mapthread(multimap<string, string>& text, FileManagement& fileManager,vecto
 
 }
 
-void ReduceThread(int index, multimap<string, int>& count, FileManagement& fileManager) {
+void ReduceThread(int index, multimap<string, int>& count, string input, string output, string temp) {
 
 	HINSTANCE hDLL;
 	funcReduce reduceDown;
 	Utils utils;
+	FileManagement fileManager{ input, output, temp, false };
 
-	const wchar_t* reduceLib = L"ReduceLibrary";
-	hDLL = LoadLibraryEx(reduceLib, NULL, NULL);
-	if (hDLL == NULL) {
-		throw exception("Failed to load Reduce Library. Stopping program...");
-	}
+	try {
+		const wchar_t* reduceLib = L"ReduceLibrary";
+		hDLL = LoadLibraryEx(reduceLib, NULL, NULL);
+		if (hDLL == NULL) {
+			throw exception("Failed to load Reduce Library. Stopping program...");
+		}
 
-	reduceDown = (funcReduce)GetProcAddress(hDLL, "ReduceDown");
-	if (reduceDown == NULL) {
+		reduceDown = (funcReduce)GetProcAddress(hDLL, "ReduceDown");
+		if (reduceDown == NULL) {
+			FreeLibrary(hDLL);
+			throw exception("Reduce function failed to load. Stopping program...");
+		}
+
+		map<string, vector<int>> tempFileLoaded;
+		int wordSum = 0;
+
+		if (!fileManager.openFile(index, false)) {
+			throw exception("Failed to open temp file");
+		}
+
+		optional<string> lineOpt = fileManager.readNextLine();
+		while (lineOpt.has_value()) {
+			string line = lineOpt.value();
+			lineOpt = fileManager.readNextLine();
+			utils.sortWords(tempFileLoaded, line);
+		}
+
+		for (auto p : tempFileLoaded) {
+			wordSum = reduceDown(p.first, p.second);
+			count.insert(make_pair(p.first, wordSum));
+		}
+
+		cout << "Thread: " << std::this_thread::get_id() << " has finished." << endl;
 		FreeLibrary(hDLL);
-		throw exception("Reduce function failed to load. Stopping program...");
 	}
+	catch (std::exception Ex) {
 
-	map<string, vector<int>> tempFileLoaded;
-	int wordSum = 0;
-
-	if (!fileManager.openFile(index, false)) {
-		throw exception("Failed to open temp file");
-	}
-
-	cout << "\tSorting content...\n";
-	optional<string> lineOpt = fileManager.readNextLine();
-	while (lineOpt.has_value()) {
-		string line = lineOpt.value();
-		lineOpt = fileManager.readNextLine();
-		utils.sortWords(tempFileLoaded, line);
-	}
-
-	cout << "\tReducing content...\n";
-	for (auto p : tempFileLoaded) {
-		wordSum = reduceDown(p.first, p.second);
-		count.insert(make_pair(p.first, wordSum));
 	}
 }
