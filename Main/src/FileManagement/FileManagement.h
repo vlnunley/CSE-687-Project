@@ -57,7 +57,7 @@ public:
 	void writeToTemp5(string content);
 	void writeToTemp6(string content);
 	void writeToTemp7(string content);
-	void WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueue, FileManagement& fileManager, int& writeToFilesIndex, vector<mutex>& mtxVect);
+	void WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueue, FileManagement& fileManager, int& writingFilesIndex);
 	void writeToOutput(string filename, string content);
 	void removeOldFiles();
 };
