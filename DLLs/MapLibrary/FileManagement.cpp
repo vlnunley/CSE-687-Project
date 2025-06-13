@@ -113,6 +113,7 @@ void FileManagement::writeToTemp(string content) {
 	tempFile.close();
 }
 
+
 void FileManagement::removeOldFiles() {
 	cout << "\nRemoving old temporary and output files\n";
 

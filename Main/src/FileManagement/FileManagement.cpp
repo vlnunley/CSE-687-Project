@@ -21,6 +21,14 @@ using std::endl;
 using std::mutex;
 
 namespace fs = std::filesystem;
+static mutex mtx0;
+static mutex mtx1;
+static mutex mtx2;
+static mutex mtx3;
+static mutex mtx4;
+static mutex mtx5;
+static mutex mtx6;
+static mutex mtx7;
 
 FileManagement::FileManagement(string inputDir, string outputDir, string tempDir, bool removeOld)
 	: inputDirectory(inputDir), outputDirectory(outputDir), tempDirectory(tempDir), currentFileIndex(0)
@@ -194,17 +202,17 @@ void FileManagement::removeOldFiles() {
 	}
 
 	}
-void FileManagement::WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueue, FileManagement& fileManager, int& writingFilesIndex, vector<mutex>& mtxVect) {
+void FileManagement::WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueue, FileManagement& fileManager, int& writingFilesIndex) {
 	switch (writingFilesIndex) {
 	case 0: {
 		while (1) {
-			if (mtxVect[0].try_lock()) {
+			if (mtx0.try_lock()) {
 				while (!tempQueue.empty()) {
 				string tempString = "(" + tempQueue.front().first + "," + std::to_string(tempQueue.front().second) + ")";
 				fileManager.writeToTemp(tempString);
 				tempQueue.pop();
 				}
-				mtxVect[0].unlock();
+				mtx0.unlock();
 				writingFilesIndex = 1;
 				break;
 			}
@@ -219,13 +227,13 @@ void FileManagement::WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueu
 	}
 	case 1: {
 		while (1) {
-			if (mtxVect[1].try_lock()) {
+			if (mtx1.try_lock()) {
 				while (!tempQueue.empty()) {
 					string tempString = "(" + tempQueue.front().first + "," + std::to_string(tempQueue.front().second) + ")";
 					fileManager.writeToTemp1(tempString);
 					tempQueue.pop();
 				}
-				mtxVect[1].unlock();
+				mtx1.unlock();
 				writingFilesIndex = 2;
 				break;
 			}
@@ -237,13 +245,13 @@ void FileManagement::WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueu
 	}
 	case 2: {
 		while (1) {
-			if (mtxVect[2].try_lock()) {
+			if (mtx2.try_lock()) {
 				while (!tempQueue.empty()) {
 					string tempString = "(" + tempQueue.front().first + "," + std::to_string(tempQueue.front().second) + ")";
 					fileManager.writeToTemp2(tempString);
 					tempQueue.pop();
 				}
-				mtxVect[2].unlock();
+				mtx2.unlock();
 				writingFilesIndex = 3;
 				break;
 			}
@@ -255,13 +263,13 @@ void FileManagement::WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueu
 	}
 	case 3: {
 		while (1) {
-			if (mtxVect[3].try_lock()) {
+			if (mtx3.try_lock()) {
 				while (!tempQueue.empty()) {
 					string tempString = "(" + tempQueue.front().first + "," + std::to_string(tempQueue.front().second) + ")";
 					fileManager.writeToTemp3(tempString);
 					tempQueue.pop();
 				}
-				mtxVect[3].unlock();
+				mtx3.unlock();
 				writingFilesIndex = 4;
 				break;
 			}
@@ -273,13 +281,13 @@ void FileManagement::WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueu
 	}
 	case 4: {
 		while (1) {
-			if (mtxVect[4].try_lock()) {
+			if (mtx4.try_lock()) {
 				while (!tempQueue.empty()) {
 					string tempString = "(" + tempQueue.front().first + "," + std::to_string(tempQueue.front().second) + ")";
 					fileManager.writeToTemp4(tempString);
 					tempQueue.pop();
 				}
-				mtxVect[4].unlock();
+				mtx4.unlock();
 				writingFilesIndex = 5;
 				break;
 			}
@@ -291,13 +299,13 @@ void FileManagement::WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueu
 	}
 	case 5: {
 		while (1) {
-			if (mtxVect[5].try_lock()) {
+			if (mtx5.try_lock()) {
 				while (!tempQueue.empty()) {
 					string tempString = "(" + tempQueue.front().first + "," + std::to_string(tempQueue.front().second) + ")";
 					fileManager.writeToTemp5(tempString);
 					tempQueue.pop();
 				}
-				mtxVect[5].unlock();
+				mtx5.unlock();
 				writingFilesIndex = 6;
 				break;
 			}
@@ -309,13 +317,13 @@ void FileManagement::WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueu
 	}
 	case 6: {
 		while (1) {
-			if (mtxVect[6].try_lock()) {
+			if (mtx6.try_lock()) {
 				while (!tempQueue.empty()) {
 					string tempString = "(" + tempQueue.front().first + "," + std::to_string(tempQueue.front().second) + ")";
 					fileManager.writeToTemp6(tempString);
 					tempQueue.pop();
 				}
-				mtxVect[6].unlock();
+				mtx6.unlock();
 				writingFilesIndex = 7;
 				break;
 			}
@@ -327,13 +335,13 @@ void FileManagement::WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueu
 	}
 	case 7: {
 		while (1) {
-			if (mtxVect[7].try_lock()) {
+			if (mtx7.try_lock()) {
 				while (!tempQueue.empty()) {
 					string tempString = "(" + tempQueue.front().first + "," + std::to_string(tempQueue.front().second) + ")";
 					fileManager.writeToTemp7(tempString);
 					tempQueue.pop();
 				}
-				mtxVect[7].unlock();
+				mtx7.unlock();
 				writingFilesIndex = 0;
 				break;
 			}
