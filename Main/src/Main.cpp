@@ -310,7 +310,7 @@ int main()
 				}
 			}
 		}
-		
+
 		cout << "\nWriting results to file\ n";
 		for (auto& p : reduce_results) {
 			string keysum;
@@ -322,7 +322,7 @@ int main()
 	}
 	catch (const exception& e) {
 		cerr << "Exception: " << e.what() << endl;
-	}	
+	}
 }
 
 void sendHeartbeat() {
@@ -337,109 +337,122 @@ void sendHeartbeat() {
 }
 
 void Mapthread(multimap<string, string> text) {
-	try{
-		HINSTANCE hDLL= LoadLibraryEx(L"MapLibrary", NULL, NULL);
-		if (!hDLL) {
-			throw runtime_error("Failed to load DLL");
-		}
-		funcMap mapText;
-		funcMapExport mapExport;
-		mapText = (funcMap)GetProcAddress(hDLL, "mapText");
-		mapExport = (funcMapExport)GetProcAddress(hDLL, "Export");
-		if (!mapText || !mapExport) {
-			FreeLibrary(hDLL);
-			throw runtime_error("Failed to get function addresses");
-		}
-		int cnt = 0;
+	std::thread heartbeatThread(sendHeartbeat);
 
-		FileManagement fileManager{"C:\\Users\\Nate\\Documents\\shakespeare\\shakespeare","C:\\Users\\Nate\\Documents\\shakespeare\\output","C:\\Users\\Nate\\Documents\\shakespeare\\Temp",false};
-		
-		srand(time(0) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
-		int writingFilesIndex = rand() % 8;
-		//int writingFilesIndex = 0;
-		
-		for (const auto& line : text)
-		{		
-			mapText(line.first, line.second);		
-			cnt++;
-			if (cnt >= 500) {
+	while (true) {
+		string msg;
+		if (msg != 'START_MAP')
+		  continue;
+
+		try{
+			HINSTANCE hDLL= LoadLibraryEx(L"MapLibrary", NULL, NULL);
+			if (!hDLL) {
+				throw runtime_error("Failed to load DLL");
+			}
+			funcMap mapText;
+			funcMapExport mapExport;
+			mapText = (funcMap)GetProcAddress(hDLL, "mapText");
+			mapExport = (funcMapExport)GetProcAddress(hDLL, "Export");
+			if (!mapText || !mapExport) {
+				FreeLibrary(hDLL);
+				throw runtime_error("Failed to get function addresses");
+			}
+			int cnt = 0;
+
+			FileManagement fileManager{"C:\\Users\\Nate\\Documents\\shakespeare\\shakespeare","C:\\Users\\Nate\\Documents\\shakespeare\\output","C:\\Users\\Nate\\Documents\\shakespeare\\Temp",false};
+
+			srand(time(0) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
+			int writingFilesIndex = rand() % 8;
+			//int writingFilesIndex = 0;
+
+			for (const auto& line : text)
+			{
+				mapText(line.first, line.second);
+				cnt++;
+				if (cnt >= 500) {
+					queue<pair<string, int>> tempQueue = mapExport(fileManager);
+					fileManager.WriteToMultipleTempFiles(tempQueue, fileManager, writingFilesIndex);
+					cnt = 0;
+				}
+			}
+			// finish writing the remaining words.
+			//while (1) {
 				queue<pair<string, int>> tempQueue = mapExport(fileManager);
 				fileManager.WriteToMultipleTempFiles(tempQueue, fileManager, writingFilesIndex);
-				cnt = 0;	
-			}
-		}
-		// finish writing the remaining words.
-		//while (1) {
-			queue<pair<string, int>> tempQueue = mapExport(fileManager);
-			fileManager.WriteToMultipleTempFiles(tempQueue, fileManager, writingFilesIndex);
-		/*	break;
-		}*/
+			/*	break;
+			}*/
 
-		while (1) {
-			if (mtx4.try_lock()) {
-				cout << "Thread: " << std::this_thread::get_id() << " has finished." << endl;
-				mtx4.unlock();
-				break;
+			while (1) {
+				if (mtx4.try_lock()) {
+					cout << "Thread: " << std::this_thread::get_id() << " has finished." << endl;
+					mtx4.unlock();
+					break;
+				}
+				else {
+					Sleep(10);
+				}
 			}
-			else {
-				Sleep(10);
-			}
+			FreeLibrary(hDLL);
 		}
-		FreeLibrary(hDLL);
+		catch (std::exception Ex) {
+			cout << Ex.what();
+		}
 	}
-	catch (std::exception Ex) {
-		cout << Ex.what();
-	}
-
 }
 
 void ReduceThread(int index, multimap<string, int>& count) {
+	std::thread heartbeatThread(sendHeartbeat);
 
-	HINSTANCE hDLL;
-	funcReduce reduceDown;
-	Utils utils;
-	FileManagement fileManager{ "C:\\Users\\Nate\\Documents\\shakespeare\\shakespeare","C:\\Users\\Nate\\Documents\\shakespeare\\output","C:\\Users\\Nate\\Documents\\shakespeare\\Temp",false };
+	while (true) {
+		string msg;
+		if (msg != 'START_MAP')
+		  continue;
 
-	try {
-		const wchar_t* reduceLib = L"ReduceLibrary";
-		hDLL = LoadLibraryEx(reduceLib, NULL, NULL);
-		if (hDLL == NULL) {
-			throw exception("Failed to load Reduce Library. Stopping program...");
-		}
+		HINSTANCE hDLL;
+		funcReduce reduceDown;
+		Utils utils;
+		FileManagement fileManager{ "C:\\Users\\Nate\\Documents\\shakespeare\\shakespeare","C:\\Users\\Nate\\Documents\\shakespeare\\output","C:\\Users\\Nate\\Documents\\shakespeare\\Temp",false };
 
-		reduceDown = (funcReduce)GetProcAddress(hDLL, "ReduceDown");
-		if (reduceDown == NULL) {
+		try {
+			const wchar_t* reduceLib = L"ReduceLibrary";
+			hDLL = LoadLibraryEx(reduceLib, NULL, NULL);
+			if (hDLL == NULL) {
+				throw exception("Failed to load Reduce Library. Stopping program...");
+			}
+
+			reduceDown = (funcReduce)GetProcAddress(hDLL, "ReduceDown");
+			if (reduceDown == NULL) {
+				FreeLibrary(hDLL);
+				throw exception("Reduce function failed to load. Stopping program...");
+			}
+
+			map<string, vector<int>> tempFileLoaded;
+			int wordSum = 0;
+
+			if (!fileManager.openFile(index, false)) {
+				throw exception("Failed to open temp file");
+			}
+
+			optional<string> lineOpt = fileManager.readNextLine();
+			while (lineOpt.has_value()) {
+				string line = lineOpt.value();
+				lineOpt = fileManager.readNextLine();
+				utils.sortWords(tempFileLoaded, line);
+			}
+
+			for (auto p : tempFileLoaded) {
+				wordSum = reduceDown(p.first, p.second);
+				count.insert(make_pair(p.first, wordSum));
+			}
+
+			cout << "Thread: " << std::this_thread::get_id() << " has finished." << endl;
 			FreeLibrary(hDLL);
-			throw exception("Reduce function failed to load. Stopping program...");
 		}
-
-		map<string, vector<int>> tempFileLoaded;
-		int wordSum = 0;
-
-		if (!fileManager.openFile(index, false)) {
-			throw exception("Failed to open temp file");
+		catch (std::exception Ex) {
+			cout << Ex.what();
 		}
-
-		optional<string> lineOpt = fileManager.readNextLine();
-		while (lineOpt.has_value()) {
-			string line = lineOpt.value();
-			lineOpt = fileManager.readNextLine();
-			utils.sortWords(tempFileLoaded, line);
-		}
-
-		for (auto p : tempFileLoaded) {
-			wordSum = reduceDown(p.first, p.second);
-			count.insert(make_pair(p.first, wordSum));
-		}
-
-		cout << "Thread: " << std::this_thread::get_id() << " has finished." << endl;
-		FreeLibrary(hDLL);
-	}
-	catch (std::exception Ex) {
-
 	}
 }
-
 
 
 void StubProcess(int port) {
