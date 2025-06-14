@@ -223,76 +223,56 @@ int main()
 		send(controller, message.c_str(), message.length(), 0);
 		Sleep(50);
 		send(controller, message.c_str(), message.length(), 0);
-// 
+		closesocket(controller);
+
 ///////////////////////////creates mapThreadclients///////////////////////////
 
+		// Reduce
+		cin.get();
 
 ///////////////////////////creates reduceThreadclients///////////////////////////
 
-		//	int controller = socket(AF_INET, SOCK_STREAM, 0);
-		//sockaddr_in stubProc1Addr{};
-		//stubProc1Addr.sin_family = AF_INET;
-		//stubProc1Addr.sin_port = htons(8080);
-		//inet_pton(AF_INET, "192.168.56.1", &stubProc1Addr.sin_addr);
+		std::string message = "CreateReduceThread";
 
-		//if (connect(controller, (struct sockaddr*)&stubProc1Addr, sizeof(stubProc1Addr)) < 0) {
-		//	std::cerr << "Failed to connect to server1!\n";
-		//	return -1;
-		//}
+		controller = socket(AF_INET, SOCK_STREAM, 0);
+		if (connect(controller, (struct sockaddr*)&stubProc1Addr, sizeof(stubProc1Addr)) < 0) {
+			std::cerr << "Failed to connect to server1!\n";
+			return -1;
+		}
+		std::cout << "Connected to stub1!\n";
+		////have stub1 create 3 reducers.
+		for (int i = 0; i < 3; i++) {
+			send(controller, message.c_str(), message.length(), 0);
+			Sleep(50);
+		}
+		closesocket(controller);
 
-		//std::cout << "Connected to stub1!\n";
-
-		////have stub1 create 5 mappers.
-		//std::string message = "CreateReduceThread";
-		//send(controller, message.c_str(), message.length(), 0);
-		//Sleep(50);
-		//send(controller, message.c_str(), message.length(), 0);
-		//Sleep(50);
-		//send(controller, message.c_str(), message.length(), 0);
-		//closesocket(controller);
-
-		//controller = socket(AF_INET, SOCK_STREAM, 0);
-		//sockaddr_in stubProc2Addr{};
-		//stubProc2Addr.sin_family = AF_INET;
-		//stubProc2Addr.sin_port = htons(8081);
-		//inet_pton(AF_INET, "192.168.56.1", &stubProc2Addr.sin_addr);
-
-		//if (connect(controller, (struct sockaddr*)&stubProc2Addr, sizeof(stubProc2Addr)) < 0) {
-		//	std::cerr << "Failed to connect to server2!\n";
-		//	return -1;
-		//}
-		//std::cout << "Connected to stub2!\n";
-		//
-		//send(controller, message.c_str(), message.length(), 0);
-		//Sleep(50);
-		//send(controller, message.c_str(), message.length(), 0);
-		//Sleep(50);
-		//send(controller, message.c_str(), message.length(), 0);
-		//Sleep(50);
-		//
-		//closesocket(controller);
-		//controller = socket(AF_INET, SOCK_STREAM, 0);
-		//sockaddr_in stubProc3Addr{};
-		//stubProc3Addr.sin_family = AF_INET;
-		//stubProc3Addr.sin_port = htons(8082);
-		//inet_pton(AF_INET, "192.168.56.1", &stubProc3Addr.sin_addr);
-
-		//if (connect(controller, (struct sockaddr*)&stubProc3Addr, sizeof(stubProc3Addr)) < 0) {
-		//	std::cerr << "Failed to connect to server3!\n";
-		//	return -1;
-		//}
-		//std::cout << "Connected to stub3!\n";
-		//send(controller, message.c_str(), message.length(), 0);
-		//Sleep(50);
-		//send(controller, message.c_str(), message.length(), 0);
-		//send(controller, message.c_str(), message.length(), 0);
+		controller = socket(AF_INET, SOCK_STREAM, 0);
+		if (connect(controller, (struct sockaddr*)&stubProc2Addr, sizeof(stubProc2Addr)) < 0) {
+			std::cerr << "Failed to connect to server2!\n";
+			return -1;
+		}
+		std::cout << "Connected to stub2!\n";
+		for (int i = 0; i < 3; i++) {
+			send(controller, message.c_str(), message.length(), 0);
+			Sleep(50);
+		}
+		closesocket(controller);
+		controller = socket(AF_INET, SOCK_STREAM, 0);
+		if (connect(controller, (struct sockaddr*)&stubProc3Addr, sizeof(stubProc3Addr)) < 0) {
+			std::cerr << "Failed to connect to server3!\n";
+			return -1;
+		}
+		std::cout << "Connected to stub3!\n";
+		for (int i = 0; i < 2; i++) {
+			send(controller, message.c_str(), message.length(), 0);
+			Sleep(50);
+		}
 
 ///////////////////////////creates reduceThreadclients///////////////////////////
-
-		
 
 	/*	vector<thread> threads;
-		
+
 		for (int i = 0; i < 17; i++) {
 			threads.emplace_back(Mapthread, std::ref(fullText[i]));
 			cout << "Thread " << threads[i].get_id() << " has started"<< endl;
@@ -302,11 +282,6 @@ int main()
 		}*/
 
 		//FreeLibrary(hDLL);
-
-		// Reduce
-		cin.get();
-		
-
 
 		//vector<multimap<string, int>> reduce_result(R);
 		//vector<thread> reduce_threads;
@@ -335,7 +310,7 @@ int main()
 				}
 			}
 		}
-		
+
 		cout << "\nWriting results to file\ n";
 		for (auto& p : reduce_results) {
 			string keysum;
@@ -347,114 +322,137 @@ int main()
 	}
 	catch (const exception& e) {
 		cerr << "Exception: " << e.what() << endl;
-	}	
+	}
 }
 
+void sendHeartbeat() {
+	while (true) {
+		// Simulate sending a heartbeat message
+		Sleep(5000); // Sleep for 5 second
+
+		int controller = socket(AF_INET, SOCK_STREAM, 0);
+		string heartbeatMessage = "HEARTBEAT";
+		send(controller, heartbeatMessage.c_str(), heartbeatMessage.length(), 0);
+	}
+}
 
 void Mapthread(multimap<string, string> text) {
-	try{
-		HINSTANCE hDLL= LoadLibraryEx(L"MapLibrary", NULL, NULL);
-		if (!hDLL) {
-			throw runtime_error("Failed to load DLL");
-		}
-		funcMap mapText;
-		funcMapExport mapExport;
-		mapText = (funcMap)GetProcAddress(hDLL, "mapText");
-		mapExport = (funcMapExport)GetProcAddress(hDLL, "Export");
-		if (!mapText || !mapExport) {
-			FreeLibrary(hDLL);
-			throw runtime_error("Failed to get function addresses");
-		}
-		int cnt = 0;
+	std::thread heartbeatThread(sendHeartbeat);
 
-		FileManagement fileManager{"C:\\Users\\Nate\\Documents\\shakespeare\\shakespeare","C:\\Users\\Nate\\Documents\\shakespeare\\output","C:\\Users\\Nate\\Documents\\shakespeare\\Temp",false};
-		
-		srand(time(0) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
-		int writingFilesIndex = rand() % 8;
-		//int writingFilesIndex = 0;
-		
-		for (const auto& line : text)
-		{		
-			mapText(line.first, line.second);		
-			cnt++;
-			if (cnt >= 500) {
+	while (true) {
+		string msg;
+		if (msg != 'START_MAP')
+		  continue;
+
+		try{
+			HINSTANCE hDLL= LoadLibraryEx(L"MapLibrary", NULL, NULL);
+			if (!hDLL) {
+				throw runtime_error("Failed to load DLL");
+			}
+			funcMap mapText;
+			funcMapExport mapExport;
+			mapText = (funcMap)GetProcAddress(hDLL, "mapText");
+			mapExport = (funcMapExport)GetProcAddress(hDLL, "Export");
+			if (!mapText || !mapExport) {
+				FreeLibrary(hDLL);
+				throw runtime_error("Failed to get function addresses");
+			}
+			int cnt = 0;
+
+			FileManagement fileManager{"C:\\Users\\Nate\\Documents\\shakespeare\\shakespeare","C:\\Users\\Nate\\Documents\\shakespeare\\output","C:\\Users\\Nate\\Documents\\shakespeare\\Temp",false};
+
+			srand(time(0) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
+			int writingFilesIndex = rand() % 8;
+			//int writingFilesIndex = 0;
+
+			for (const auto& line : text)
+			{
+				mapText(line.first, line.second);
+				cnt++;
+				if (cnt >= 500) {
+					queue<pair<string, int>> tempQueue = mapExport(fileManager);
+					fileManager.WriteToMultipleTempFiles(tempQueue, fileManager, writingFilesIndex);
+					cnt = 0;
+				}
+			}
+			// finish writing the remaining words.
+			//while (1) {
 				queue<pair<string, int>> tempQueue = mapExport(fileManager);
 				fileManager.WriteToMultipleTempFiles(tempQueue, fileManager, writingFilesIndex);
-				cnt = 0;	
-			}
-		}
-		// finish writing the remaining words.
-		//while (1) {
-			queue<pair<string, int>> tempQueue = mapExport(fileManager);
-			fileManager.WriteToMultipleTempFiles(tempQueue, fileManager, writingFilesIndex);
-		/*	break;
-		}*/
+			/*	break;
+			}*/
 
-		while (1) {
-			if (mtx4.try_lock()) {
-				cout << "Thread: " << std::this_thread::get_id() << " has finished." << endl;
-				mtx4.unlock();
-				break;
+			while (1) {
+				if (mtx4.try_lock()) {
+					cout << "Thread: " << std::this_thread::get_id() << " has finished." << endl;
+					mtx4.unlock();
+					break;
+				}
+				else {
+					Sleep(10);
+				}
 			}
-			else {
-				Sleep(10);
-			}
+			FreeLibrary(hDLL);
 		}
-		FreeLibrary(hDLL);
+		catch (std::exception Ex) {
+			cout << Ex.what();
+		}
 	}
-	catch (std::exception Ex) {
-		cout << Ex.what();
-	}
-
 }
 
 void ReduceThread(int index, multimap<string, int>& count) {
+	std::thread heartbeatThread(sendHeartbeat);
 
-	HINSTANCE hDLL;
-	funcReduce reduceDown;
-	Utils utils;
-	FileManagement fileManager{ "C:\\Users\\Nate\\Documents\\shakespeare\\shakespeare","C:\\Users\\Nate\\Documents\\shakespeare\\output","C:\\Users\\Nate\\Documents\\shakespeare\\Temp",false };
+	while (true) {
+		string msg;
+		if (msg != 'START_MAP')
+		  continue;
 
-	try {
-		const wchar_t* reduceLib = L"ReduceLibrary";
-		hDLL = LoadLibraryEx(reduceLib, NULL, NULL);
-		if (hDLL == NULL) {
-			throw exception("Failed to load Reduce Library. Stopping program...");
-		}
+		HINSTANCE hDLL;
+		funcReduce reduceDown;
+		Utils utils;
+		FileManagement fileManager{ "C:\\Users\\Nate\\Documents\\shakespeare\\shakespeare","C:\\Users\\Nate\\Documents\\shakespeare\\output","C:\\Users\\Nate\\Documents\\shakespeare\\Temp",false };
 
-		reduceDown = (funcReduce)GetProcAddress(hDLL, "ReduceDown");
-		if (reduceDown == NULL) {
+		try {
+			const wchar_t* reduceLib = L"ReduceLibrary";
+			hDLL = LoadLibraryEx(reduceLib, NULL, NULL);
+			if (hDLL == NULL) {
+				throw exception("Failed to load Reduce Library. Stopping program...");
+			}
+
+			reduceDown = (funcReduce)GetProcAddress(hDLL, "ReduceDown");
+			if (reduceDown == NULL) {
+				FreeLibrary(hDLL);
+				throw exception("Reduce function failed to load. Stopping program...");
+			}
+
+			map<string, vector<int>> tempFileLoaded;
+			int wordSum = 0;
+
+			if (!fileManager.openFile(index, false)) {
+				throw exception("Failed to open temp file");
+			}
+
+			optional<string> lineOpt = fileManager.readNextLine();
+			while (lineOpt.has_value()) {
+				string line = lineOpt.value();
+				lineOpt = fileManager.readNextLine();
+				utils.sortWords(tempFileLoaded, line);
+			}
+
+			for (auto p : tempFileLoaded) {
+				wordSum = reduceDown(p.first, p.second);
+				count.insert(make_pair(p.first, wordSum));
+			}
+
+			cout << "Thread: " << std::this_thread::get_id() << " has finished." << endl;
 			FreeLibrary(hDLL);
-			throw exception("Reduce function failed to load. Stopping program...");
 		}
-
-		map<string, vector<int>> tempFileLoaded;
-		int wordSum = 0;
-
-		if (!fileManager.openFile(index, false)) {
-			throw exception("Failed to open temp file");
+		catch (std::exception Ex) {
+			cout << Ex.what();
 		}
-
-		optional<string> lineOpt = fileManager.readNextLine();
-		while (lineOpt.has_value()) {
-			string line = lineOpt.value();
-			lineOpt = fileManager.readNextLine();
-			utils.sortWords(tempFileLoaded, line);
-		}
-
-		for (auto p : tempFileLoaded) {
-			wordSum = reduceDown(p.first, p.second);
-			count.insert(make_pair(p.first, wordSum));
-		}
-
-		cout << "Thread: " << std::this_thread::get_id() << " has finished." << endl;
-		FreeLibrary(hDLL);
-	}
-	catch (std::exception Ex) {
-
 	}
 }
-
 
 
 void StubProcess(int port) {
