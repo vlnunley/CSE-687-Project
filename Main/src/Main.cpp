@@ -223,76 +223,56 @@ int main()
 		send(controller, message.c_str(), message.length(), 0);
 		Sleep(50);
 		send(controller, message.c_str(), message.length(), 0);
-// 
+		closesocket(controller);
+
 ///////////////////////////creates mapThreadclients///////////////////////////
 
+		// Reduce
+		cin.get();
 
 ///////////////////////////creates reduceThreadclients///////////////////////////
 
-		//	int controller = socket(AF_INET, SOCK_STREAM, 0);
-		//sockaddr_in stubProc1Addr{};
-		//stubProc1Addr.sin_family = AF_INET;
-		//stubProc1Addr.sin_port = htons(8080);
-		//inet_pton(AF_INET, "192.168.56.1", &stubProc1Addr.sin_addr);
+		std::string message = "CreateReduceThread";
 
-		//if (connect(controller, (struct sockaddr*)&stubProc1Addr, sizeof(stubProc1Addr)) < 0) {
-		//	std::cerr << "Failed to connect to server1!\n";
-		//	return -1;
-		//}
+		controller = socket(AF_INET, SOCK_STREAM, 0);
+		if (connect(controller, (struct sockaddr*)&stubProc1Addr, sizeof(stubProc1Addr)) < 0) {
+			std::cerr << "Failed to connect to server1!\n";
+			return -1;
+		}
+		std::cout << "Connected to stub1!\n";
+		////have stub1 create 3 reducers.
+		for (int i = 0; i < 3; i++) {
+			send(controller, message.c_str(), message.length(), 0);
+			Sleep(50);
+		}
+		closesocket(controller);
 
-		//std::cout << "Connected to stub1!\n";
-
-		////have stub1 create 5 mappers.
-		//std::string message = "CreateReduceThread";
-		//send(controller, message.c_str(), message.length(), 0);
-		//Sleep(50);
-		//send(controller, message.c_str(), message.length(), 0);
-		//Sleep(50);
-		//send(controller, message.c_str(), message.length(), 0);
-		//closesocket(controller);
-
-		//controller = socket(AF_INET, SOCK_STREAM, 0);
-		//sockaddr_in stubProc2Addr{};
-		//stubProc2Addr.sin_family = AF_INET;
-		//stubProc2Addr.sin_port = htons(8081);
-		//inet_pton(AF_INET, "192.168.56.1", &stubProc2Addr.sin_addr);
-
-		//if (connect(controller, (struct sockaddr*)&stubProc2Addr, sizeof(stubProc2Addr)) < 0) {
-		//	std::cerr << "Failed to connect to server2!\n";
-		//	return -1;
-		//}
-		//std::cout << "Connected to stub2!\n";
-		//
-		//send(controller, message.c_str(), message.length(), 0);
-		//Sleep(50);
-		//send(controller, message.c_str(), message.length(), 0);
-		//Sleep(50);
-		//send(controller, message.c_str(), message.length(), 0);
-		//Sleep(50);
-		//
-		//closesocket(controller);
-		//controller = socket(AF_INET, SOCK_STREAM, 0);
-		//sockaddr_in stubProc3Addr{};
-		//stubProc3Addr.sin_family = AF_INET;
-		//stubProc3Addr.sin_port = htons(8082);
-		//inet_pton(AF_INET, "192.168.56.1", &stubProc3Addr.sin_addr);
-
-		//if (connect(controller, (struct sockaddr*)&stubProc3Addr, sizeof(stubProc3Addr)) < 0) {
-		//	std::cerr << "Failed to connect to server3!\n";
-		//	return -1;
-		//}
-		//std::cout << "Connected to stub3!\n";
-		//send(controller, message.c_str(), message.length(), 0);
-		//Sleep(50);
-		//send(controller, message.c_str(), message.length(), 0);
-		//send(controller, message.c_str(), message.length(), 0);
+		controller = socket(AF_INET, SOCK_STREAM, 0);
+		if (connect(controller, (struct sockaddr*)&stubProc2Addr, sizeof(stubProc2Addr)) < 0) {
+			std::cerr << "Failed to connect to server2!\n";
+			return -1;
+		}
+		std::cout << "Connected to stub2!\n";
+		for (int i = 0; i < 3; i++) {
+			send(controller, message.c_str(), message.length(), 0);
+			Sleep(50);
+		}
+		closesocket(controller);
+		controller = socket(AF_INET, SOCK_STREAM, 0);
+		if (connect(controller, (struct sockaddr*)&stubProc3Addr, sizeof(stubProc3Addr)) < 0) {
+			std::cerr << "Failed to connect to server3!\n";
+			return -1;
+		}
+		std::cout << "Connected to stub3!\n";
+		for (int i = 0; i < 2; i++) {
+			send(controller, message.c_str(), message.length(), 0);
+			Sleep(50);
+		}
 
 ///////////////////////////creates reduceThreadclients///////////////////////////
-
-		
 
 	/*	vector<thread> threads;
-		
+
 		for (int i = 0; i < 17; i++) {
 			threads.emplace_back(Mapthread, std::ref(fullText[i]));
 			cout << "Thread " << threads[i].get_id() << " has started"<< endl;
@@ -302,11 +282,6 @@ int main()
 		}*/
 
 		//FreeLibrary(hDLL);
-
-		// Reduce
-		cin.get();
-		
-
 
 		//vector<multimap<string, int>> reduce_result(R);
 		//vector<thread> reduce_threads;
