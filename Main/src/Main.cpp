@@ -325,6 +325,16 @@ int main()
 	}	
 }
 
+void sendHeartbeat() {
+	while (true) {
+		// Simulate sending a heartbeat message
+		Sleep(5000); // Sleep for 5 second
+
+		int controller = socket(AF_INET, SOCK_STREAM, 0);
+		string heartbeatMessage = "HEARTBEAT";
+		send(controller, heartbeatMessage.c_str(), heartbeatMessage.length(), 0);
+	}
+}
 
 void Mapthread(multimap<string, string> text) {
 	try{
