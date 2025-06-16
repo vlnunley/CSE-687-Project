@@ -50,7 +50,7 @@ const int SPAWN_PORT_BASE = 5000;
 const int START_SIGNAL_PORT = 4000;
 const int CONTROLLER_PORT = 6000;
 
-int mapDone = 0;
+bool runReduce = false;
 
 int main()
 {
@@ -95,12 +95,15 @@ int main()
 
 		listenForHeartbeats();
 
-		while (mapDone < 14)
+		while (!runReduce)
 		{}
 
 		int port = SPAWN_PORT_BASE + 3;
 		std::cout << "Sending 'spawn reduce' to stub " << 3 << " on port " << port << "\n";
 		sendMessage("spawn reduce", port);
+
+
+		listenForHeartbeats();
 
 
 		WSACleanup();
@@ -177,13 +180,13 @@ void listenForHeartbeats() {
 	std::cout << "[Controller] Listening for heartbeats on port 6000...\n";
 
 	while (true) {
-		// Use select to wait up to 30 seconds for a connection
+		// Use select to wait up to 5 seconds for a connection
 		fd_set readfds;
 		FD_ZERO(&readfds);
 		FD_SET(serverSock, &readfds);
 
 		timeval timeout;
-		timeout.tv_sec = 30;
+		timeout.tv_sec = 5;
 		timeout.tv_usec = 0;
 
 		int activity = select(0, &readfds, NULL, NULL, &timeout);
@@ -194,7 +197,8 @@ void listenForHeartbeats() {
 		}
 
 		if (activity == 0) {
-			std::cout << "[Controller] No heartbeat received in 30 seconds. Exiting.\n";
+			std::cout << "[Controller] No heartbeat received in 5 seconds. Exiting.\n";
+			runReduce = true;
 			break;
 		}
 
@@ -211,10 +215,6 @@ void listenForHeartbeats() {
 		if (received > 0) {
 			std::string msg(buffer, received);
 			std::cout << "[Heartbeat] " << msg << "\n";
-			if (msg == "Map Done")
-			{
-				mapDone++;
-			}
 		}
 		else {
 			std::cerr << "[Controller] Received empty or failed message\n";

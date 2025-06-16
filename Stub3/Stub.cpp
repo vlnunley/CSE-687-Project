@@ -27,7 +27,7 @@ typedef int (*funcReduce)(const string&, vector<int>&);
 static mutex mtx4;
 
 const int CONTROLLER_PORT = 6000;
-const int HEARTBEAT_INTERVAL_MS = 5000; // 2 seconds
+const int HEARTBEAT_INTERVAL_MS = 1000; // 2 seconds
 
 
 void sendHeartbeat(int stubId, const std::string& workerType, int workerId, bool done) {
@@ -40,7 +40,7 @@ void sendHeartbeat(int stubId, const std::string& workerType, int workerId, bool
 
     if (connect(sock, (sockaddr*)&addr, sizeof(addr)) == 0) {
         if (done) {
-            msg = "Map Done";
+            msg = "Done";
         }
         else {
             msg = "Stub " + std::to_string(stubId) + " " + workerType + " " + std::to_string(workerId) + " running";
@@ -55,72 +55,66 @@ void mapThread(int stubId, int workerId, multimap<string, string> text) {
     FileManagement fileManager{ "./mapreduce/input", "./mapreduce/output", "./mapreduce/temp", false };
 
     std::cout << "Map worker " << workerId << " started processing in stub " << stubId << "\n";
-
-    while (true) {
-        string msg;
-
-        try {
-            HINSTANCE hDLL = LoadLibraryEx(L"MapLibrary", NULL, NULL);
-            if (!hDLL) {
-                throw runtime_error("Failed to load DLL");
-            }
-            funcMap mapText;
-            funcMapExport mapExport;
-            mapText = (funcMap)GetProcAddress(hDLL, "mapText");
-            mapExport = (funcMapExport)GetProcAddress(hDLL, "Export");
-            if (!mapText || !mapExport) {
-                FreeLibrary(hDLL);
-                throw runtime_error("Failed to get function addresses");
-            }
-            int cnt = 0;
-
-            srand(time(0) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
-            int writingFilesIndex = workerId;
-            //int writingFilesIndex = 0;
-            auto lastHeartbeat = std::chrono::steady_clock::now();
-
-            for (const auto& line : text)
-            {
-                mapText(line.first, line.second);
-                cnt++;
-                if (cnt >= 500) {
-                    queue<pair<string, int>> tempQueue = mapExport(fileManager);
-                    fileManager.WriteToMultipleTempFiles(tempQueue, fileManager, writingFilesIndex);
-                    cnt = 0;
-                    std::cout << "Map worker " << workerId << " wrote to file" << "\n";
-                }
-
-                auto now = std::chrono::steady_clock::now();
-                if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHeartbeat).count() >= HEARTBEAT_INTERVAL_MS) {
-                    sendHeartbeat(stubId, "Map", workerId);
-                    lastHeartbeat = now;
-                }
-            }
-            // finish writing the remaining words.
-            //while (1) {
-            queue<pair<string, int>> tempQueue = mapExport(fileManager);
-            fileManager.WriteToMultipleTempFiles(tempQueue, fileManager, writingFilesIndex);
-            /*	break;
-            }*/
-
-            while (1) {
-                if (mtx4.try_lock()) {
-                    mtx4.unlock();
-                    break;
-                }
-                else {
-                    Sleep(10);
-                }
-            }
+    try {
+        HINSTANCE hDLL = LoadLibraryEx(L"MapLibrary", NULL, NULL);
+        if (!hDLL) {
+            throw runtime_error("Failed to load DLL");
+        }
+        funcMap mapText;
+        funcMapExport mapExport;
+        mapText = (funcMap)GetProcAddress(hDLL, "mapText");
+        mapExport = (funcMapExport)GetProcAddress(hDLL, "Export");
+        if (!mapText || !mapExport) {
             FreeLibrary(hDLL);
+            throw runtime_error("Failed to get function addresses");
         }
-        catch (std::exception Ex) {
-            std::cout << Ex.what();
-        }
-    }
+        int cnt = 0;
 
+        srand(time(0) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
+        int writingFilesIndex = workerId;
+        //int writingFilesIndex = 0;
+        auto lastHeartbeat = std::chrono::steady_clock::now();
+
+        for (const auto& line : text)
+        {
+            mapText(line.first, line.second);
+            cnt++;
+            if (cnt >= 10) {
+                queue<pair<string, int>> tempQueue = mapExport(fileManager);
+                fileManager.WriteToMultipleTempFiles(tempQueue, fileManager, writingFilesIndex);
+                cnt = 0;
+                std::cout << "Map worker " << workerId << " wrote to file" << "\n";
+            }
+
+            auto now = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHeartbeat).count() >= HEARTBEAT_INTERVAL_MS) {
+                sendHeartbeat(stubId, "Map", workerId, false);
+                lastHeartbeat = now;
+            }
+        }
+        // finish writing the remaining words.
+        //while (1) {
+        queue<pair<string, int>> tempQueue = mapExport(fileManager);
+        fileManager.WriteToMultipleTempFiles(tempQueue, fileManager, writingFilesIndex);
+        /*	break;
+        }*/
+
+        while (1) {
+            if (mtx4.try_lock()) {
+                mtx4.unlock();
+                break;
+            }
+            else {
+                Sleep(10);
+            }
+        }
+        FreeLibrary(hDLL);
+    }
+    catch (std::exception Ex) {
+        std::cout << Ex.what();
+    }
     // Send final heartbeat on completion
-    sendHeartbeat(stubId, "Map", workerId);
+    sendHeartbeat(stubId, "Map", workerId, true);
     std::cout << "Map worker " << workerId << " finished processing in stub " << stubId << "\n";
 }
 
@@ -129,69 +123,64 @@ void reduceThread(int stubId, int workerId, int index, multimap<string, int>& co
 
     auto lastHeartbeat = std::chrono::steady_clock::now();
 
+    HINSTANCE hDLL;
+    funcReduce reduceDown;
+    Utils utils;
+    FileManagement fileManager{ "./mapreduce/input", "./mapreduce/output", "./mapreduce/temp", false };
 
-    while (true)
+    try
     {
-        HINSTANCE hDLL;
-        funcReduce reduceDown;
-        Utils utils;
-        FileManagement fileManager{ "./mapreduce/input", "./mapreduce/output", "./mapreduce/temp", false };
+        const wchar_t* reduceLib = L"ReduceLibrary";
+        hDLL = LoadLibraryEx(reduceLib, NULL, NULL);
+        if (hDLL == NULL) {
+            throw std::exception("Failed to load Reduce Library. Stopping program...");
+        }
 
-        try
-        {
-            const wchar_t* reduceLib = L"ReduceLibrary";
-            hDLL = LoadLibraryEx(reduceLib, NULL, NULL);
-            if (hDLL == NULL) {
-                throw std::exception("Failed to load Reduce Library. Stopping program...");
-            }
-
-            reduceDown = (funcReduce)GetProcAddress(hDLL, "ReduceDown");
-            if (reduceDown == NULL) {
-                FreeLibrary(hDLL);
-                throw std::exception("Reduce function failed to load. Stopping program...");
-            }
-
-            map<string, vector<int>> tempFileLoaded;
-            int wordSum = 0;
-
-            if (!fileManager.openFile(index, false)) {
-                throw std::exception("Failed to open temp file");
-            }
-
-            std::optional<string> lineOpt = fileManager.readNextLine();
-            while (lineOpt.has_value()) {
-                string line = lineOpt.value();
-                lineOpt = fileManager.readNextLine();
-                utils.sortWords(tempFileLoaded, line);
-                auto now = std::chrono::steady_clock::now();
-                if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHeartbeat).count() >= HEARTBEAT_INTERVAL_MS) {
-                    sendHeartbeat(stubId, "Reduce", workerId);
-                    lastHeartbeat = now;
-                }
-
-            }
-
-            for (auto p : tempFileLoaded) {
-                wordSum = reduceDown(p.first, p.second);
-                count.insert(make_pair(p.first, wordSum));
-                auto now = std::chrono::steady_clock::now();
-                if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHeartbeat).count() >= HEARTBEAT_INTERVAL_MS) {
-                    sendHeartbeat(stubId, "Reduce", workerId);
-                    lastHeartbeat = now;
-                }
-
-            }
-
-            std::cout << "Thread: " << std::this_thread::get_id() << " has finished." << std::endl;
+        reduceDown = (funcReduce)GetProcAddress(hDLL, "ReduceDown");
+        if (reduceDown == NULL) {
             FreeLibrary(hDLL);
+            throw std::exception("Reduce function failed to load. Stopping program...");
         }
-        catch (std::exception Ex) {
-            std::cout << Ex.what();
+
+        map<string, vector<int>> tempFileLoaded;
+        int wordSum = 0;
+
+        if (!fileManager.openFile(index, false)) {
+            throw std::exception("Failed to open temp file");
         }
+
+        std::optional<string> lineOpt = fileManager.readNextLine();
+        while (lineOpt.has_value()) {
+            string line = lineOpt.value();
+            lineOpt = fileManager.readNextLine();
+            utils.sortWords(tempFileLoaded, line);
+            auto now = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHeartbeat).count() >= HEARTBEAT_INTERVAL_MS) {
+                sendHeartbeat(stubId, "Reduce", workerId, false);
+                lastHeartbeat = now;
+            }
+        }
+
+        for (auto p : tempFileLoaded) {
+            wordSum = reduceDown(p.first, p.second);
+            count.insert(make_pair(p.first, wordSum));
+            auto now = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHeartbeat).count() >= HEARTBEAT_INTERVAL_MS) {
+                sendHeartbeat(stubId, "Reduce", workerId, false);
+                lastHeartbeat = now;
+            }
+
+        }
+
+        std::cout << "Thread: " << std::this_thread::get_id() << " has finished." << std::endl;
+        FreeLibrary(hDLL);
+    }
+    catch (std::exception Ex) {
+        std::cout << Ex.what();
     }
 
     // Send final heartbeat on completion
-    sendHeartbeat(stubId, "Reduce", workerId);
+    sendHeartbeat(stubId, "Reduce", workerId, true);
     std::cout << "Reduce worker " << workerId << " finished processing in stub " << stubId << "\n";
 
 }
