@@ -163,7 +163,6 @@ void reduceThread(int stubId, int workerId, multimap<string, int>& count) {
 
         for (auto p : tempFileLoaded) {
             wordSum = reduceDown(p.first, p.second);
-            std::cout << p.first << "\n";
             count.insert(make_pair(p.first, wordSum));
         }
         FreeLibrary(hDLL);
@@ -320,9 +319,7 @@ int main(int argc, char* argv[]) {
                 std::cout << "\nWriting results to file\n";
                 for (auto& p : reduce_results) {
                 	string keysum;
-
                 	keysum = "(" + p.first + "," + std::to_string(p.second) + ")\n";
-
                 	fileManager.writeToOutput("Output.txt", keysum);
                 }
                 fileManager.writeToOutput("SUCCESS", "");
