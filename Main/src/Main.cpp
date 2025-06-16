@@ -37,7 +37,6 @@ using std::thread;
 using CINchecks::inputDirectoryCheck;
 using CINchecks::outputDirectoryCheck;
 using CINchecks::tempDirectoryCheck;
-using CINchecks::ipAddress;
 using std::mutex;
 
 void sendMessage(const std::string& message, int port);
@@ -96,9 +95,6 @@ int main()
 
 		listenForHeartbeats();
 
-		// Wait a bit for stubs to spawn threads
-		std::this_thread::sleep_for(std::chrono::seconds(3));
-		
 		while (mapDone < 14)
 		{}
 

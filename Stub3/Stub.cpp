@@ -27,18 +27,25 @@ typedef int (*funcReduce)(const string&, vector<int>&);
 static mutex mtx4;
 
 const int CONTROLLER_PORT = 6000;
-const int HEARTBEAT_INTERVAL_MS = 2000; // 2 seconds
+const int HEARTBEAT_INTERVAL_MS = 5000; // 2 seconds
 
 
-void sendHeartbeat(int stubId, const std::string& workerType, int workerId) {
+void sendHeartbeat(int stubId, const std::string& workerType, int workerId, bool done) {
     SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
     addr.sin_port = htons(6000);  // controller port
     addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    std::string msg;
 
     if (connect(sock, (sockaddr*)&addr, sizeof(addr)) == 0) {
-        std::string msg = "Stub " + std::to_string(stubId) + " " + workerType + " " + std::to_string(workerId) + " heartbeat";
+        if (done) {
+            msg = "Map Done";
+        }
+        else {
+            msg = "Stub " + std::to_string(stubId) + " " + workerType + " " + std::to_string(workerId) + " running";
+        }
+        
         send(sock, msg.c_str(), (int)msg.size(), 0);
     }
     closesocket(sock);
@@ -68,7 +75,7 @@ void mapThread(int stubId, int workerId, multimap<string, string> text) {
             int cnt = 0;
 
             srand(time(0) + std::hash<std::thread::id>{}(std::this_thread::get_id()));
-            int writingFilesIndex = rand() % 8;
+            int writingFilesIndex = workerId;
             //int writingFilesIndex = 0;
             auto lastHeartbeat = std::chrono::steady_clock::now();
 
@@ -80,6 +87,7 @@ void mapThread(int stubId, int workerId, multimap<string, string> text) {
                     queue<pair<string, int>> tempQueue = mapExport(fileManager);
                     fileManager.WriteToMultipleTempFiles(tempQueue, fileManager, writingFilesIndex);
                     cnt = 0;
+                    std::cout << "Map worker " << workerId << " wrote to file" << "\n";
                 }
 
                 auto now = std::chrono::steady_clock::now();
@@ -236,7 +244,7 @@ int main(int argc, char* argv[]) {
     std::cout << "[Stub " << stubId << "] Listening on port " << port << "\n";
 
     const int MAPS_PER_STUB = 5;
-    const int REDUCE_NUM = 8;
+    const int REDUCE_NUM = 5;
 
     std::vector<std::thread> workers;
 
