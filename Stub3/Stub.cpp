@@ -27,7 +27,7 @@ typedef int (*funcReduce)(const string&, vector<int>&);
 static mutex mtx4;
 
 const int CONTROLLER_PORT = 6000;
-const int HEARTBEAT_INTERVAL_MS = 1000; // 2 seconds
+const int HEARTBEAT_INTERVAL_MS = 3000; // 2 seconds
 
 
 void sendHeartbeat(int stubId, const std::string& workerType, int workerId, bool done) {
@@ -40,7 +40,7 @@ void sendHeartbeat(int stubId, const std::string& workerType, int workerId, bool
 
     if (connect(sock, (sockaddr*)&addr, sizeof(addr)) == 0) {
         if (done) {
-            msg = "Done";
+            msg = "Stub " + std::to_string(stubId) + " " + workerType + " " + std::to_string(workerId) + " Done";
         }
         else {
             msg = "Stub " + std::to_string(stubId) + " " + workerType + " " + std::to_string(workerId) + " running";
@@ -79,11 +79,10 @@ void mapThread(int stubId, int workerId, multimap<string, string> text) {
         {
             mapText(line.first, line.second);
             cnt++;
-            if (cnt >= 10) {
+            if (cnt >= 100) {
                 queue<pair<string, int>> tempQueue = mapExport(fileManager);
                 fileManager.WriteToMultipleTempFiles(tempQueue, fileManager, writingFilesIndex);
                 cnt = 0;
-                std::cout << "Map worker " << workerId << " wrote to file" << "\n";
             }
 
             auto now = std::chrono::steady_clock::now();
@@ -118,7 +117,7 @@ void mapThread(int stubId, int workerId, multimap<string, string> text) {
     std::cout << "Map worker " << workerId << " finished processing in stub " << stubId << "\n";
 }
 
-void reduceThread(int stubId, int workerId, int index, multimap<string, int>& count) {
+void reduceThread(int stubId, int workerId, multimap<string, int>& count) {
     std::cout << "Reduce worker " << workerId << " started processing in stub " << stubId << "\n";
 
     auto lastHeartbeat = std::chrono::steady_clock::now();
@@ -145,7 +144,7 @@ void reduceThread(int stubId, int workerId, int index, multimap<string, int>& co
         map<string, vector<int>> tempFileLoaded;
         int wordSum = 0;
 
-        if (!fileManager.openFile(index, false)) {
+        if (!fileManager.openFile(workerId, false)) {
             throw std::exception("Failed to open temp file");
         }
 
@@ -154,25 +153,19 @@ void reduceThread(int stubId, int workerId, int index, multimap<string, int>& co
             string line = lineOpt.value();
             lineOpt = fileManager.readNextLine();
             utils.sortWords(tempFileLoaded, line);
-            auto now = std::chrono::steady_clock::now();
-            if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHeartbeat).count() >= HEARTBEAT_INTERVAL_MS) {
-                sendHeartbeat(stubId, "Reduce", workerId, false);
-                lastHeartbeat = now;
-            }
+        }
+
+        auto now = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHeartbeat).count() >= HEARTBEAT_INTERVAL_MS) {
+            sendHeartbeat(stubId, "Reduce", workerId, false);
+            lastHeartbeat = now;
         }
 
         for (auto p : tempFileLoaded) {
             wordSum = reduceDown(p.first, p.second);
+            std::cout << p.first << "\n";
             count.insert(make_pair(p.first, wordSum));
-            auto now = std::chrono::steady_clock::now();
-            if (std::chrono::duration_cast<std::chrono::milliseconds>(now - lastHeartbeat).count() >= HEARTBEAT_INTERVAL_MS) {
-                sendHeartbeat(stubId, "Reduce", workerId, false);
-                lastHeartbeat = now;
-            }
-
         }
-
-        std::cout << "Thread: " << std::this_thread::get_id() << " has finished." << std::endl;
         FreeLibrary(hDLL);
     }
     catch (std::exception Ex) {
@@ -233,7 +226,6 @@ int main(int argc, char* argv[]) {
     std::cout << "[Stub " << stubId << "] Listening on port " << port << "\n";
 
     const int MAPS_PER_STUB = 5;
-    const int REDUCE_NUM = 5;
 
     std::vector<std::thread> workers;
 
@@ -290,13 +282,22 @@ int main(int argc, char* argv[]) {
                     fileManager.closeFile(); // optional, destructor will handle it
                     workers.emplace_back(mapThread, stubId, i, fullText);
                 }
+                for (auto& t : workers) {
+                    if (t.joinable()) t.join();
+                }
+
             }
             if (msg == "spawn reduce")
             {
+                const int REDUCE_NUM = 5;
                 vector<multimap<string, int>> reduce_text(REDUCE_NUM);
                 for (int i = 0; i < REDUCE_NUM; ++i) {
                     // Spawn thread for reduce worker
-                    workers.emplace_back(reduceThread, stubId, 0, i, std::ref(reduce_text[i]));
+                    workers.emplace_back(reduceThread, stubId, i, std::ref(reduce_text[i]));
+                }
+
+                for (auto& t : workers) {
+                    if (t.joinable()) t.join();
                 }
 
                 multimap<string, int> reduce_results;
@@ -319,15 +320,15 @@ int main(int argc, char* argv[]) {
                 std::cout << "\nWriting results to file\n";
                 for (auto& p : reduce_results) {
                 	string keysum;
+
                 	keysum = "(" + p.first + "," + std::to_string(p.second) + ")\n";
+
                 	fileManager.writeToOutput("Output.txt", keysum);
                 }
                 fileManager.writeToOutput("SUCCESS", "");
                 
             }
-            for (auto& t : workers) {
-                if (t.joinable()) t.join();
-            }
+       
         }
         closesocket(clientSock);
     }

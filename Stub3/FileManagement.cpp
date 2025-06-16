@@ -213,7 +213,6 @@ void FileManagement::WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueu
 				tempQueue.pop();
 				}
 				mtx0.unlock();
-				writingFilesIndex = 1;
 				break;
 			}
 			else {
@@ -234,7 +233,6 @@ void FileManagement::WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueu
 					tempQueue.pop();
 				}
 				mtx1.unlock();
-				writingFilesIndex = 2;
 				break;
 			}
 			else {
@@ -252,7 +250,6 @@ void FileManagement::WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueu
 					tempQueue.pop();
 				}
 				mtx2.unlock();
-				writingFilesIndex = 3;
 				break;
 			}
 			else {
@@ -270,7 +267,6 @@ void FileManagement::WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueu
 					tempQueue.pop();
 				}
 				mtx3.unlock();
-				writingFilesIndex = 4;
 				break;
 			}
 			else {
@@ -288,7 +284,6 @@ void FileManagement::WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueu
 					tempQueue.pop();
 				}
 				mtx4.unlock();
-				writingFilesIndex = 5;
 				break;
 			}
 			else {
@@ -306,7 +301,6 @@ void FileManagement::WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueu
 					tempQueue.pop();
 				}
 				mtx5.unlock();
-				writingFilesIndex = 6;
 				break;
 			}
 			else {
@@ -324,7 +318,6 @@ void FileManagement::WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueu
 					tempQueue.pop();
 				}
 				mtx6.unlock();
-				writingFilesIndex = 7;
 				break;
 			}
 			else {
@@ -342,7 +335,6 @@ void FileManagement::WriteToMultipleTempFiles(queue<pair<string, int>>& tempQueu
 					tempQueue.pop();
 				}
 				mtx7.unlock();
-				writingFilesIndex = 0;
 				break;
 			}
 			else {
